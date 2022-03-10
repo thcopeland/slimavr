@@ -10,13 +10,13 @@ src		 		= $(wildcard $(SRC)/*.c)
 src_o 			= $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(src))
 
 
-all: objdirs slimavr.a
+all: objdirs libslimavr.a
 
 objdirs:
 	mkdir -p $(OBJ)/models
 
-slimavr.a: $(src_models_o) $(src_o)
-	ar rcs libslimavr.a $^
+libslimavr.a: $(src_models_o) $(src_o)
+	ar rcs $@ $^
 
 $(OBJ)/models/%.o: $(SRC)/models/%.c
 	$(CC) $(DEFS) $(CFLAGS) $^ -c -o $@
