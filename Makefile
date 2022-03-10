@@ -9,7 +9,6 @@ src_models_o 	= $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(src_models))
 src		 		= $(wildcard $(SRC)/*.c)
 src_o 			= $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(src))
 
-
 all: objdirs libslimavr.a
 
 objdirs:
@@ -24,9 +23,11 @@ $(OBJ)/models/%.o: $(SRC)/models/%.c
 $(OBJ)/%.o: $(SRC)/%.c
 	$(CC) $(DEFS) $(CFLAGS) $^ -c -o $@
 
-test: slimavr.a
-	make -C $(TEST)
+test: libslimavr.a .FORCE
+	make -C $(TEST) run
 
 clean:
 	rm -f $(src_models_o) $(src_o)
 	make -C $(TEST) clean
+
+.FORCE:
