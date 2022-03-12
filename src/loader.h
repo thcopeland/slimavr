@@ -3,6 +3,10 @@
 
 #include "avr.h"
 
-int load_ihex(char *mem, int memsize, char *fname);
+#define EFILE 1
+#define EFORMAT 2
+#define ECHECKSUM 3
+
+int avr_load_ihex(struct avr *avr, char *fname);
 
 #endif

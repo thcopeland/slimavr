@@ -12,13 +12,13 @@ struct avr {
     int model;  // processor model
     int pc;     // program counter
     long clock; // processor clock
-    // char *eeprom; // unsupported
-    char *rom;  // program memory
-    char *mem;  // ram
+    // unsigned char *eeprom; // unsupported
+    unsigned char *rom;  // program memory
+    unsigned char *mem;  // ram
 };
 
-struct avr *avr_new(int model);
-void avr_check(struct avr *avr);
+struct avr *avr_init(int model);
+void avr_step(struct avr *avr);
 void avr_free(struct avr *avr);
 
 #endif

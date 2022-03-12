@@ -1,62 +1,78 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+#include <errno.h>
+#include "opt.h"
 #include "loader.h"
 
-// the max record size is 1+8+256+2
 #define BUFFSIZE 512
 
-#define fail(...)   do { \
-                        printf(__VA_ARGS__); \
-                        exit(1); \
-                    } while (0)
-
-int load_ihex(char *mem, int memsize, char *fname) {
+int avr_load_ihex(struct avr *avr, char *fname) {
     FILE *f = fopen(fname, "r");
-    if (!f) fail("Unable to open %s\n", fname);
     char buff[BUFFSIZE];
-    uint32_t base_offset = 0;
-    int line = 1;
+    uint32_t line = 1,
+             base_addr = 0;
+
+     if (!f) {
+         LOG(1, "avr_load_ihex: %s", strerror(errno));
+         return EFILE;
+     }
 
     while (fgets(buff, BUFFSIZE, f)) {
-        uint32_t addr = 0;
-        int count, type, i = 0;
-        if (buff[i++] != ':') continue;
-        if (sscanf(buff+i, "%2X%4X%2X", &count, &addr, &type) == 3) i += 8;
-        else fail("Invalid HEX record at %s:%i\n", fname, line);
+        unsigned val, addr, count, type;
+        // read the record header
+        if (sscanf(buff, ":%2X%4X%2X", &count, &addr, &type) != 3) {
+            LOG(1, "avr_load_ihex: malformed header at %s:%d\n", fname, line);
+            fclose(f);
+            return EFORMAT;
+        }
+        int i = 9;
+        int checksum = count + addr + (addr >> 8) + type;
 
+        // read and load the record data
         switch(type) {
             case 0x00: // data
-                addr += base_offset;
-                if (addr+count >= (uint32_t) memsize) {
-                    fail("HEX record address 0x%08x at %s:%i exceeds memory limit (%i bytes)\n", addr+count-1, fname, line, memsize);
-                }
+                addr += base_addr;
                 while (count--) {
-                    unsigned val;
-                    if (sscanf(buff+i, "%2X", &val) == 1) mem[addr] = val;
-                    else fail("HEX data record at %s:%i is too short\n", fname, line);
-                    addr++;
+                    sscanf(buff+i, "%2X", &val);
+                    avr->rom[addr++] = val;
+                    checksum += val;
                     i += 2;
                 }
                 break;
             case 0x01: // end of file
-                goto exit;
+                goto done;
             case 0x02: // extended segment address
-                if (sscanf(buff+i, "%4X", &base_offset)) base_offset *= 16;
-                else fail("Invalid HEX segment address record at %s:%i\n", fname, line);
+                sscanf(buff+i, "%4X", &val);
+                checksum += val + (val>>8);
+                base_addr = (val << 4);
+                i += 4;
                 break;
             case 0x03: // start segment address, ignored
                 break;
             case 0x04: // extended linear address, unsupported
             case 0x05: // start linear address, unsupported
+                LOG(1, "avr_load_ihex: unsupported record type %02X at %s:%d\n", type, fname, line);
+                fclose(f);
+                return EFORMAT;
             default:
-                fail("Unsupported HEX record type %02X at %s:%i\n", type, fname, line);
+                fclose(f);
+                return EFORMAT;
+        }
+
+        // test checksum
+        sscanf(buff+i, "%2X", &val);
+        if ((val + checksum) & 0xff) {
+            LOG(1, "avr_load_ihex: checksum failed at %s:%d (0x%02X != 0x%02X)\n", fname, line, (-checksum) & 0xff, val);
+            fclose(f);
+            return ECHECKSUM;
         }
 
         line++;
     }
 
-exit:
+done:
     fclose(f);
     return 0;
 }

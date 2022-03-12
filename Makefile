@@ -3,6 +3,7 @@ OBJ 			= obj
 TEST			= tests
 DEFS			= -D CHECKS=1
 CFLAGS			= -O2 -flto -Wall -Wextra
+LDLIBS			= -lm
 
 src_models 		= $(wildcard $(SRC)/models/*.c)
 src_models_o 	= $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(src_models))
