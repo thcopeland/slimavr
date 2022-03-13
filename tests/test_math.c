@@ -1,13 +1,17 @@
 #include <stdio.h>
-#include "avr.h"
-#include "loader.h"
+#include "slimavr.h"
 
 void test_basic_math(void) {
     printf("testing basic math... ");
-    struct avr *avr = avr_init(0);
+    struct avr *avr = avr_init(MODEL_ATMEGA1280);
     avr_load_ihex(avr, "fixtures/atmega2560_math.hex");
+
+    for(int i = 0; i < 80; i++) {
+        avr_step(avr);
+    }
+
     avr_free(avr);
-    printf("\x1b[32mpass\x1b[0m\n");
+    printf("pass\n");
 }
 
 int main(int argc, char **argv) {
