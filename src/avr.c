@@ -11,7 +11,7 @@ struct avr *avr_init(struct avr_model model) {
         avr->model = model;
         avr->pc = 0;
         avr->rom = malloc(model.romsize);
-        avr->mem = malloc(model.memsize);
+        avr->mem = malloc(model.memsize+model.ramstart);
         if (!avr->rom || !avr->mem) {
             free(avr->rom);
             free(avr->mem);
@@ -30,10 +30,14 @@ void avr_free(struct avr *avr) {
     }
 }
 
+#include <stdio.h>
+
 void avr_step(struct avr *avr) {
     uint8_t inst_l = avr->rom[avr->pc],
             inst_h = avr->rom[avr->pc+1];
     uint16_t inst = (inst_h << 8) + inst_l;
+
+    printf("%x:\t", avr->pc);
 
     // instructions of the form 0000-00xx-xxxx-xxxx
     // nop, movw, muls, mulsu, fmul, fmuls, fmulsu

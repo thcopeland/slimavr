@@ -15,11 +15,10 @@ struct avr {
     struct avr_model model; // processor model
     uint8_t error;          // current error, if any
     uint8_t status;         // processor state
-    uint8_t regs[32];       // general purpose registers
     uint8_t progress;       // cycles remaining for multi-cycle instructions
     uint32_t pc;            // program counter
-    unsigned char *rom;     // program memory
-    unsigned char *mem;     // sram and memory-mapped registers
+    uint8_t *rom;           // program memory
+    uint8_t *mem;           // sram and registers
 };
 
 struct avr *avr_init(struct avr_model model);

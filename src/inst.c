@@ -1,12 +1,28 @@
 #include "inst.h"
 
+int long_inst(uint16_t inst) {
+    return (inst & 0xfc0f) == 0x9000 || // lds, sts
+           (inst & 0xfe06) == 0x9406; // jmp, call
+}
 
 #include <stdio.h>
 
 void inst_add(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("add\n");
+    uint8_t dst = (inst >> 4) & 0x1f,
+            src = ((inst >> 5) & 0x10) | (inst & 0xf),
+            a = avr->mem[dst],
+            b = avr->mem[src],
+            c = avr->mem[dst] + avr->mem[src];
+    avr->mem[dst] = c;
+    printf("add\tr%d, r%d\n", dst, src);
+    uint8_t status = avr->mem[avr->model.status_reg] & 0xc0;
+    status |= (((a & b) | (~c & (a | b))) & 0x80) >> 7;     // carry
+    status |= (c == 0) << 1;                                // zero
+    status |= (c & 0x80) >> 5;                              // negative
+    status |= (((a & b & ~c) | (~a & ~b & c)) & 0x80) >> 4; // overflow
+    status |= (((status << 1) ^ status) & 0x08) << 1;       // sign
+    status |= (((a & b) | (~c & (a | b))) & 0x08) << 2;      // half carry
+    avr->mem[avr->model.status_reg] = status;
     avr->pc += 2;
 }
 
@@ -25,9 +41,21 @@ void inst_adiw(struct avr *avr, uint16_t inst) {
 }
 
 void inst_sub(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("sub\n");
+    uint8_t dst = (inst >> 4) & 0x1f,
+            src = ((inst >> 5) & 0x10) | (inst & 0xf),
+            a = avr->mem[dst],
+            b = avr->mem[src],
+            c = avr->mem[dst] - avr->mem[src];
+    avr->mem[dst] = c;
+    printf("sub\tr%d, r%d\n", dst, src);
+    uint8_t status = avr->mem[avr->model.status_reg] & 0xc0;
+    status |= ((~a & b) | (b & c) | (~a & c)) >> 7;         // carry/borrow
+    status |= (c == 0x00) << 1;                             // zero
+    status |= (c & 0x80) >> 5;                              // negative
+    status |= (((a & ~b & ~c) | (~a & b & c)) & 0x80) >> 4; // overflow
+    status |= (((status << 1) ^ status) & 0x08) << 1;       // sign
+    status |= (((~a & b) | (c & (~a | b))) & 0x08) << 2;    // half carry
+    avr->mem[avr->model.status_reg] = status;
     avr->pc += 2;
 }
 
@@ -88,9 +116,16 @@ void inst_ori(struct avr *avr, uint16_t inst) {
 }
 
 void inst_eor(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("eor\n");
+    uint8_t dst = (inst >> 4) & 0x1f,
+            src = ((inst >> 5) & 0x10) | (inst & 0x0f),
+            val = avr->mem[dst] ^ avr->mem[src];
+    avr->mem[dst] = val;
+    printf("eor\tr%d, r%d\n", dst, src);
+    uint8_t status = avr->mem[avr->model.status_reg] & 0xe1;
+    status |= (val == 0x00) << 1;                           // zero
+    status |= (val & 0x80) >> 5;                            // negative
+    status |= (val & 0x80) >> 5;                            // sign
+    avr->mem[avr->model.status_reg] = status;
     avr->pc += 2;
 }
 
@@ -128,10 +163,12 @@ void inst_inc(struct avr *avr, uint16_t inst) {
     printf("inc\n");
     avr->pc += 2;
 }
+
 void inst_in(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("in\n");
+    uint8_t dst = (inst >> 4) & 0x1f,
+            addr = (((inst >> 4) & 0x30) | (inst & 0xf)) + avr->model.in_out_offset;
+    printf("in\tr%d, 0x%03x\n", dst, addr - avr->model.in_out_offset);
+    avr->mem[dst] = avr->mem[addr];
     avr->pc += 2;
 }
 
@@ -149,13 +186,6 @@ void inst_tst(struct avr *avr, uint16_t inst) {
     avr->pc += 2;
 }
 
-void inst_clr(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("clr\n");
-    avr->pc += 2;
-}
-
 void inst_ser(struct avr *avr, uint16_t inst) {
     (void) avr;
     (void) inst;
@@ -164,9 +194,18 @@ void inst_ser(struct avr *avr, uint16_t inst) {
 }
 
 void inst_mul(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("mul\n");
+    uint8_t reg1 = (inst >> 4) & 0x1f,
+            reg2 = ((inst >> 5) & 0x10) | (inst & 0x0f),
+            a = avr->mem[reg1],
+            b = avr->mem[reg2];
+    uint16_t c = a * b;
+    printf("mul\tr%d, r%d\n", reg1, reg2);
+    avr->mem[0] = c & 0xff;
+    avr->mem[1] = c >> 8;
+    uint8_t status = avr->mem[avr->model.status_reg] & 0xfc;
+    status |= (c & 0x8000) >> 15;                           // carry/borrow
+    status |= (c == 0x00) << 1;                             // zero
+    avr->mem[avr->model.status_reg] = status;
     avr->pc += 2;
 }
 
@@ -206,10 +245,9 @@ void inst_fmulsu(struct avr *avr, uint16_t inst) {
 }
 
 void inst_rjmp(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("rjmp\n");
-    avr->pc += 2;
+    int16_t dpc = (int16_t) (inst << 4) >> 4; // sign extend
+    printf("rjmp\t%+d\n", 2*(dpc+1));
+    avr->pc += 2*(dpc+1);
 }
 
 void inst_ijmp(struct avr *avr, uint16_t inst) {
@@ -283,23 +321,55 @@ void inst_cpse(struct avr *avr, uint16_t inst) {
 }
 
 void inst_cp(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("cp\n");
+    uint8_t reg1 = (inst >> 4) & 0x0f,
+            reg2 = ((inst >> 5) & 0x10) | (inst & 0x0f),
+            a = avr->mem[reg1],
+            b = avr->mem[reg2],
+            c = a - b;
+    printf("cp \tr%d, r%d\n", reg1, reg2);
+    uint8_t status = avr->mem[avr->model.status_reg] & 0xc0;
+    status |= ((~a & b) | (b & c) | (~a & c)) >> 7;         // carry/borrow
+    status |= (c == 0x00) << 1;                             // zero
+    status |= (c & 0x80) >> 5;                              // negative
+    status |= (((a & ~b & ~c) | (~a & b & c)) & 0x80) >> 4; // overflow
+    status |= (((status << 1) ^ status) & 0x08) << 1;       // sign
+    status |= (((~a & b) | (c & (~a | b))) & 0x08) << 2;    // half carry
+    avr->mem[avr->model.status_reg] = status;
     avr->pc += 2;
 }
 
 void inst_cpc(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("cpc\n");
+    uint8_t reg1 = (inst >> 4) & 0x0f,
+            reg2 = ((inst >> 5) & 0x10) | (inst & 0x0f),
+            a = avr->mem[reg1],
+            b = avr->mem[reg2],
+            c = a - b - (avr->mem[avr->model.status_reg] & 0x01);
+    printf("cpc \tr%d, r%d\n", reg1, reg2);
+    uint8_t status = avr->mem[avr->model.status_reg] & 0xc0;
+    status |= ((~a & b) | (b & c) | (~a & c)) >> 7;         // carry/borrow
+    status |= (c == 0x00) << 1;                             // zero
+    status |= (c & 0x80) >> 5;                              // negative
+    status |= (((a & ~b & ~c) | (~a & b & c)) & 0x80) >> 4; // overflow
+    status |= (((status << 1) ^ status) & 0x08) << 1;       // sign
+    status |= (((~a & b) | (c & (~a | b))) & 0x08) << 2;    // half carry
+    avr->mem[avr->model.status_reg] = status;
     avr->pc += 2;
 }
 
 void inst_cpi(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("cpi\n");
+    uint8_t reg = ((inst >> 4) & 0x0f) | 0x10,
+            a = avr->mem[reg],
+            b = ((inst >> 4) & 0xf0) | (inst & 0x0f),
+            c = a - b;
+    printf("cpi\tr%d, %d\n", reg, b);
+    uint8_t status = avr->mem[avr->model.status_reg] & 0xc0;
+    status |= ((~a & b) | (b & c) | (~a & c)) >> 7;         // carry/borrow
+    status |= (c == 0x00) << 1;                             // zero
+    status |= (c & 0x80) >> 5;                              // negative
+    status |= (((a & ~b & ~c) | (~a & b & c)) & 0x80) >> 4; // overflow
+    status |= (((status << 1) ^ status) & 0x08) << 1;       // sign
+    status |= (((~a & b) | (c & (~a | b))) & 0x08) << 2;    // half carry
+    avr->mem[avr->model.status_reg] = status;
     avr->pc += 2;
 }
 
@@ -332,10 +402,17 @@ void inst_sbis(struct avr *avr, uint16_t inst) {
 }
 
 void inst_branch(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("branch\n");
-    avr->pc += 2;
+    uint8_t dpc = ((int8_t) (inst >> 2)) >> 1,
+            val = (inst >> 10) & 0x01,
+            chk = (avr->mem[avr->model.status_reg] >> (inst & 0x07)) ^ val;
+    printf("brch\t%+d on %cSREG[%d] (%d)", dpc, val ? '~' : ' ', inst & 0x07, avr->mem[avr->model.status_reg]);
+    if (chk & 1) {
+        avr->pc += 2*(dpc+1);
+        printf(" -> taken\n");
+    } else {
+        avr->pc += 2;
+        printf(" -> pass\n");
+    }
 }
 //
 //
@@ -697,9 +774,10 @@ void inst_movw(struct avr *avr, uint16_t inst) {
 }
 
 void inst_ldi(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("ldi\n");
+    uint8_t dst = ((inst >> 4) & 0x0f) | 0x10,
+            val = ((inst >> 4) & 0xf0) | (inst & 0x0f);
+    printf("ldi\tr%d, %d\n", dst, val);
+    avr->mem[dst] = val;
     avr->pc += 2;
 }
 
@@ -718,9 +796,12 @@ void inst_ldd(struct avr *avr, uint16_t inst) {
 }
 
 void inst_lds(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("lds\n");
+    uint8_t dst = (inst >> 4) & 0x1f,
+            addr_l = avr->rom[avr->pc+2],
+            addr_h = avr->rom[avr->pc+3];
+    uint16_t addr = (addr_h << 8) | addr_l;
+    printf("lds\tr%d, 0x%04x\n", dst, addr);
+    avr->mem[dst] = avr->mem[addr];
     avr->pc += 4;
 }
 
@@ -739,9 +820,13 @@ void inst_std(struct avr *avr, uint16_t inst) {
 }
 
 void inst_sts(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("sts\n");
+    uint8_t src = (inst >> 4) & 0x1f,
+            addr_l = avr->rom[avr->pc+2],
+            addr_h = avr->rom[avr->pc+3];
+    uint16_t addr = (addr_h << 8) | addr_l;
+    printf("sts\t0x%04x, r%d\n", addr, src);
+    avr->mem[addr] = avr->mem[src];
+    // TODO 1 more cycle: avr->progress = 1;
     avr->pc += 4;
 }
 
