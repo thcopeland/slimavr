@@ -9,13 +9,16 @@
 #define EBADADDR 3
 #define EBADPADDR 4
 
-#define SLEEPING 1
+#define CPU_STATUS_NORMAL 0
+#define CPU_STATUS_LONGINST 1
+#define CPU_STATUS_SLEEPING 2
+#define CPU_STATUS_INTERRUPTING 3
 
 struct avr {
     struct avr_model model; // processor model
     uint8_t error;          // current error, if any
     uint8_t status;         // processor state
-    uint8_t progress;       // cycles remaining for multi-cycle instructions
+    int8_t progress;        // cycles remaining for multi-cycle instructions
     uint32_t pc;            // program counter
     uint8_t *rom;           // program memory
     uint8_t *mem;           // sram and registers

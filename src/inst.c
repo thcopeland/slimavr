@@ -207,6 +207,8 @@ void inst_mul(struct avr *avr, uint16_t inst) {
     status |= (c == 0x00) << 1;                             // zero
     avr->mem[avr->model.status_reg] = status;
     avr->pc += 2;
+    avr->progress = 1;
+    avr->status = CPU_STATUS_LONGINST;
 }
 
 void inst_muls(struct avr *avr, uint16_t inst) {
@@ -248,6 +250,8 @@ void inst_rjmp(struct avr *avr, uint16_t inst) {
     int16_t dpc = (int16_t) (inst << 4) >> 4; // sign extend
     printf("rjmp\t%+d\n", 2*(dpc+1));
     avr->pc += 2*(dpc+1);
+    avr->progress = 1;
+    avr->status = CPU_STATUS_LONGINST;
 }
 
 void inst_ijmp(struct avr *avr, uint16_t inst) {
@@ -408,6 +412,8 @@ void inst_branch(struct avr *avr, uint16_t inst) {
     printf("brch\t%+d on %cSREG[%d] (%d)", dpc, val ? '~' : ' ', inst & 0x07, avr->mem[avr->model.status_reg]);
     if (chk & 1) {
         avr->pc += 2*(dpc+1);
+        avr->progress = 1;
+        avr->status = CPU_STATUS_LONGINST;
         printf(" -> taken\n");
     } else {
         avr->pc += 2;
@@ -803,6 +809,8 @@ void inst_lds(struct avr *avr, uint16_t inst) {
     printf("lds\tr%d, 0x%04x\n", dst, addr);
     avr->mem[dst] = avr->mem[addr];
     avr->pc += 4;
+    avr->progress = 1;
+    avr->status = CPU_STATUS_LONGINST;
 }
 
 void inst_st(struct avr *avr, uint16_t inst) {
@@ -826,8 +834,9 @@ void inst_sts(struct avr *avr, uint16_t inst) {
     uint16_t addr = (addr_h << 8) | addr_l;
     printf("sts\t0x%04x, r%d\n", addr, src);
     avr->mem[addr] = avr->mem[src];
-    // TODO 1 more cycle: avr->progress = 1;
     avr->pc += 4;
+    avr->progress = 1;
+    avr->status = CPU_STATUS_LONGINST;
 }
 
 void inst_lpm(struct avr *avr, uint16_t inst) {
