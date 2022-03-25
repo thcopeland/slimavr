@@ -15,7 +15,7 @@ int avr_load_ihex(struct avr *avr, char *fname) {
              base_addr = 0;
 
      if (!f) {
-         LOG(1, "avr_load_ihex: %s", strerror(errno));
+         LOG(1, "avr_load_ihex: %s\n", strerror(errno));
          return EFILE;
      }
 

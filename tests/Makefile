@@ -5,10 +5,10 @@ LDLIBS			= ../libslimavr.a
 tests = $(wildcard *.c)
 tests_ex = $(patsubst %.c, %.out, $(tests))
 
-all: fixtures $(tests_ex)
+all: asm $(tests_ex)
 
-fixtures: .FORCE
-	make -C fixtures
+asm: .FORCE
+	make -C asm
 
 %.out: %.c $(LDLIBS)
 	gcc $(CFLAGS) $^ $(LDLIBS) -o $@

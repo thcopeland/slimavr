@@ -22,7 +22,7 @@ test_addition:
     brne fail_add
     rjmp test_16bit_addition
 fail_add:
-    ldi r31, 0
+    ldi r31, 1
     sts status, r31
     rjmp stall
 
@@ -59,7 +59,7 @@ test_16bit_addition:
     brne fail_16bit_add
     rjmp test_subtraction
 fail_16bit_add:
-    ldi r31, 1
+    ldi r31, 2
     sts status, r31
     rjmp stall
 
@@ -92,7 +92,7 @@ test_subtraction:
     cpi r18, 0x15
     rjmp test_16bit_subtraction
 fail_sub:
-    ldi r31, 2
+    ldi r31, 3
     sts status, r31
     rjmp stall
 
@@ -141,7 +141,7 @@ test_16bit_subtraction:
     brne fail_16bit_sub
     rjmp test_negation
 fail_16bit_sub:
-    ldi r31, 3
+    ldi r31, 4
     sts status, r31
     rjmp stall
 
@@ -162,7 +162,7 @@ test_negation:
     brne fail_neg
     rjmp stall
 fail_neg:
-    ldi r31, 4
+    ldi r31, 5
     sts status, r31
 stall:
     rjmp stall
