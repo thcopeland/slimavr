@@ -28,6 +28,14 @@ static void set_sreg_sub(struct avr *avr, uint8_t a, uint8_t b, uint8_t c) {
     avr->mem[avr->model.status_reg] = status;
 }
 
+static void set_sreg_logical(struct avr *avr, uint8_t val) {
+    uint8_t status = avr->mem[avr->model.status_reg] & 0xe1;
+    status |= (val == 0) << 1;                              // zero
+    status |= (val & 0x80) >> 5;                            // negative
+    status |= (val & 0x80) >> 3;                            // sign
+    avr->mem[avr->model.status_reg] = status;
+}
+
 void inst_add(struct avr *avr, uint16_t inst) {
     uint8_t dst = (inst >> 4) & 0x1f,
             src = ((inst >> 5) & 0x10) | (inst & 0xf),
@@ -143,30 +151,42 @@ void inst_sbiw(struct avr *avr, uint16_t inst) {
 }
 
 void inst_and(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("and\n");
+    uint8_t dst = (inst >> 4) & 0x1f,
+            src = ((inst >> 5) & 0x10) | (inst & 0x0f),
+            val = avr->mem[dst] & avr->mem[src];
+    avr->mem[dst] = val;
+    printf("and\tr%d, r%d\n", dst, src);
+    set_sreg_logical(avr, val);
     avr->pc += 2;
 }
 
 void inst_andi(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("andi\n");
+    uint8_t dst = ((inst >> 4) & 0x0f) | 0x10,
+            imm = ((inst >> 4) & 0xf0) | (inst & 0x0f),
+            val = avr->mem[dst] & imm;
+    avr->mem[dst] = val;
+    printf("andi\tr%d, %d\n", dst, imm);
+    set_sreg_logical(avr, val);
     avr->pc += 2;
 }
 
 void inst_or(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("or\n");
+    uint8_t dst = (inst >> 4) & 0x1f,
+            src = ((inst >> 5) & 0x10) | (inst & 0x0f),
+            val = avr->mem[dst] | avr->mem[src];
+    avr->mem[dst] = val;
+    printf("or\tr%d, r%d\n", dst, src);
+    set_sreg_logical(avr, val);
     avr->pc += 2;
 }
 
 void inst_ori(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("ori\n");
+    uint8_t dst = ((inst >> 4) & 0x0f) | 0x10,
+            imm = ((inst >> 4) & 0xf0) | (inst & 0x0f),
+            val = avr->mem[dst] | imm;
+    avr->mem[dst] = val;
+    printf("ori\tr%d, %d\n", dst, imm);
+    set_sreg_logical(avr, val);
     avr->pc += 2;
 }
 
@@ -176,49 +196,39 @@ void inst_eor(struct avr *avr, uint16_t inst) {
             val = avr->mem[dst] ^ avr->mem[src];
     avr->mem[dst] = val;
     printf("eor\tr%d, r%d\n", dst, src);
-    uint8_t status = avr->mem[avr->model.status_reg] & 0xe1;
-    status |= (val == 0x00) << 1;                           // zero
-    status |= (val & 0x80) >> 5;                            // negative
-    status |= (val & 0x80) >> 5;                            // sign
-    avr->mem[avr->model.status_reg] = status;
+    set_sreg_logical(avr, val);
     avr->pc += 2;
 }
 
 void inst_com(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("com\n");
-    avr->pc += 2;
+    uint8_t dst = (inst >> 4) & 0x1f,
+            val = avr->mem[dst];
+    avr->mem[dst] = ~val;
+    printf("com r%d\n", dst);
+    set_sreg_sub(avr, 255, val, ~val);
 }
 
 void inst_neg(struct avr *avr, uint16_t inst) {
     uint8_t dst = (inst >> 4) & 0x1f,
-            val = avr->mem[dst],
-            neg = (~val)+1;
-    avr->mem[dst] = neg;
+            val = avr->mem[dst];
+    avr->mem[dst] = -val;
     printf("neg r%d\n", dst);
-    set_sreg_sub(avr, 0, val, neg);
+    set_sreg_sub(avr, 0, val, -val);
     avr->pc += 2;
 }
 
-// void inst_sbr(struct avr *avr, uint16_t inst) {
-//     (void) avr;
-//     (void) inst;
-//     printf("sbr\n");
-//     avr->pc += 2;
-// }
-
-// void inst_cbr(struct avr *avr, uint16_t inst) {
-//     (void) avr;
-//     (void) inst;
-//     printf("cbr\n");
-//     avr->pc += 2;
-// }
-
 void inst_inc(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("inc\n");
+    uint8_t dst = (inst >> 4) & 0x1f,
+            val = avr->mem[dst],
+            inc = val+1,
+            status = avr->mem[avr->model.status_reg] & 0xe1;
+    avr->mem[dst] = inc;
+    printf("inc\tr%d\n", dst);
+    status |= (inc == 0) << 1;                              // zero
+    status |= (inc & 0x80) >> 5;                            // negative
+    status |= ((inc ^ 0x7f) == 0xff) << 3;                  // overflow
+    status |= (((status << 1) ^ status) & 0x08) << 1;       // sign
+    avr->mem[avr->model.status_reg] = status;
     avr->pc += 2;
 }
 
@@ -231,23 +241,17 @@ void inst_in(struct avr *avr, uint16_t inst) {
 }
 
 void inst_dec(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("dec\n");
-    avr->pc += 2;
-}
-
-void inst_tst(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("tst\n");
-    avr->pc += 2;
-}
-
-void inst_ser(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("ser\n");
+    uint8_t dst = (inst >> 4) & 0x1f,
+            val = avr->mem[dst],
+            dec = val-1,
+            status = avr->mem[avr->model.status_reg] & 0xe1;
+    avr->mem[dst] = dec;
+    printf("dec\tr%d\n", dst);
+    status |= (dec == 0) << 1;                              // zero
+    status |= (dec & 0x80) >> 5;                            // negative
+    status |= ((dec ^ 0x80) == 0xff) << 3;                  // overflow
+    status |= (((status << 1) ^ status) & 0x08) << 1;       // sign
+    avr->mem[avr->model.status_reg] = status;
     avr->pc += 2;
 }
 

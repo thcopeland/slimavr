@@ -160,9 +160,51 @@ test_negation:
     brne fail_neg
     cpi r20, 0x0d
     brne fail_neg
-    rjmp stall
+    rjmp test_inc
 fail_neg:
     ldi r31, 5
     sts status, r31
+    rjmp stall
+
+test_inc:
+    ldi r16, 255
+    inc r16
+    in r20, SREG
+    cpi r16, 0
+    brne fail_inc
+    cpi r20, 0x02
+    brne fail_inc
+    inc r16
+    in r20, SREG
+    cpi r16, 1
+    brne fail_inc
+    cpi r20, 0x00
+    brne fail_inc
+    rjmp test_dec
+fail_inc:
+    ldi r31, 6
+    sts status, r31
+    rjmp stall
+
+test_dec:
+    clr r16
+    dec r16
+    in r20, SREG
+    cpi r16, 255
+    brne fail_dec
+    cpi r20, 0x14
+    brne fail_dec
+    dec r16
+    in r20, SREG
+    cpi r16, 254
+    brne fail_dec
+    cpi r20, 0x14
+    brne fail_dec
+    rjmp stall
+fail_dec:
+    ldi r31, 7
+    sts status, r31
+    rjmp stall
+
 stall:
     rjmp stall

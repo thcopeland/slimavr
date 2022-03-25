@@ -4,12 +4,12 @@
 
 void test_arithmetic(void) {
     printf("testing arithmetic... ");
-    run_test("asm/arithmetic.hex", 160, MODEL_ATMEGA1280);
+    run_test("asm/arithmetic.hex", 180, MODEL_ATMEGA1280);
 }
 
 void test_bitwise(void) {
     printf("testing bitwise operations... ");
-    run_test("asm/bitwise.hex", 20, MODEL_ATMEGA1280);
+    run_test("asm/bitwise.hex", 60, MODEL_ATMEGA1280);
 }
 
 void test_multiplication(void) {
