@@ -36,6 +36,13 @@ static inline void set_sreg_logical(struct avr *avr, uint8_t val) {
     avr->mem[avr->model.status_reg] = status;
 }
 
+static inline void set_sreg_mul(struct avr *avr, uint16_t val) {
+    uint8_t status = avr->mem[avr->model.status_reg] & 0xfc;
+    status |= (val & 0x8000) >> 15;                         // carry
+    status |= (val == 0x00) << 1;                           // zero
+    avr->mem[avr->model.status_reg] = status;
+}
+
 void inst_add(struct avr *avr, uint16_t inst) {
     uint8_t dst = (inst >> 4) & 0x1f,
             src = ((inst >> 5) & 0x10) | (inst & 0xf),
@@ -256,35 +263,42 @@ void inst_dec(struct avr *avr, uint16_t inst) {
 }
 
 void inst_mul(struct avr *avr, uint16_t inst) {
-    uint8_t reg1 = (inst >> 4) & 0x1f,
-            reg2 = ((inst >> 5) & 0x10) | (inst & 0x0f),
-            a = avr->mem[reg1],
-            b = avr->mem[reg2];
-    uint16_t c = a * b;
-    printf("mul\tr%d, r%d\n", reg1, reg2);
-    avr->mem[0] = c & 0xff;
-    avr->mem[1] = c >> 8;
-    uint8_t status = avr->mem[avr->model.status_reg] & 0xfc;
-    status |= (c & 0x8000) >> 15;                           // carry/borrow
-    status |= (c == 0x00) << 1;                             // zero
-    avr->mem[avr->model.status_reg] = status;
+    uint8_t r1 = (inst >> 4) & 0x1f,
+            r2 = ((inst >> 5) & 0x10) | (inst & 0x0f);
+    uint16_t prod = (uint16_t) avr->mem[r1] * avr->mem[r2];
+    avr->mem[0] = prod & 0xff;
+    avr->mem[1] = prod >> 8;
+    printf("mul\tr%d, r%d\n", r1, r2);
+    set_sreg_mul(avr, prod);
     avr->pc += 2;
     avr->progress = 1;
     avr->status = CPU_STATUS_LONGINST;
 }
 
 void inst_muls(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("muls\n");
+    uint8_t r1 = ((inst >> 4) & 0x0f) | 0x10,
+            r2 = (inst & 0x0f) | 0x10;
+    int16_t prod = (int8_t) avr->mem[r1] * (int8_t) avr->mem[r2];
+    avr->mem[0] = prod & 0xff;
+    avr->mem[1] = (prod >> 8) & 0xff;
+    printf("muls\tr%d, r%d\n", r1, r2);
+    set_sreg_mul(avr, prod);
     avr->pc += 2;
+    avr->progress = 1;
+    avr->status = CPU_STATUS_LONGINST;
 }
 
 void inst_mulsu(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("mulsu\n");
+    uint8_t r1 = ((inst >> 4) & 0x07) | 0x10,
+            r2 = (inst & 0x07) | 0x10;
+    int16_t prod = (int8_t) avr->mem[r1] * (uint8_t) avr->mem[r2];
+    avr->mem[0] = prod & 0xff;
+    avr->mem[1] = (prod >> 8) & 0xff;
+    printf("mulsu\tr%d, r%d\n", r1, r2);
+    set_sreg_mul(avr, prod);
     avr->pc += 2;
+    avr->progress = 1;
+    avr->status = CPU_STATUS_LONGINST;
 }
 
 void inst_fmul(struct avr *avr, uint16_t inst) {

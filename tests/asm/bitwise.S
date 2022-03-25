@@ -62,7 +62,7 @@ test_eor:
     brne fail_eor
     rjmp stall
 fail_eor:
-    ldi r31, 2
+    ldi r31, 3
     sts status, r31
     rjmp stall
 
