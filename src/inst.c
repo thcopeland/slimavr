@@ -43,6 +43,13 @@ static inline void set_sreg_mul(struct avr *avr, uint16_t val) {
     avr->mem[avr->model.status_reg] = status;
 }
 
+static inline void set_sreg_fmul(struct avr *avr, uint16_t val) {
+    uint8_t status = avr->mem[avr->model.status_reg] & 0xfc;
+    status |= (val & 0x8000) >> 15;                         // carry
+    status |= (val == 0) << 1;                              // zero
+    avr->mem[avr->model.status_reg] = status;
+}
+
 void inst_add(struct avr *avr, uint16_t inst) {
     uint8_t dst = (inst >> 4) & 0x1f,
             src = ((inst >> 5) & 0x10) | (inst & 0xf),
@@ -102,7 +109,7 @@ void inst_sub(struct avr *avr, uint16_t inst) {
 }
 
 void inst_subi(struct avr *avr, uint16_t inst) {
-    uint8_t dst = ((inst >> 4) & 0x0f) | 0x10,
+    uint8_t dst = ((inst >> 4) & 0x0f) + 16,
             imm = ((inst >> 4) & 0xf0) | (inst & 0x0f),
             val = avr->mem[dst],
             diff = val - imm;
@@ -125,7 +132,7 @@ void inst_sbc(struct avr *avr, uint16_t inst) {
 }
 
 void inst_sbci(struct avr *avr, uint16_t inst) {
-    uint8_t dst = ((inst >> 4) & 0x0f) | 0x10,
+    uint8_t dst = ((inst >> 4) & 0x0f) + 16,
             imm = ((inst >> 4) & 0xf0) | (inst & 0x0f),
             val = avr->mem[dst],
             diff = val - imm - (avr->mem[avr->model.status_reg] & 0x01);
@@ -168,7 +175,7 @@ void inst_and(struct avr *avr, uint16_t inst) {
 }
 
 void inst_andi(struct avr *avr, uint16_t inst) {
-    uint8_t dst = ((inst >> 4) & 0x0f) | 0x10,
+    uint8_t dst = ((inst >> 4) & 0x0f) + 16,
             imm = ((inst >> 4) & 0xf0) | (inst & 0x0f),
             val = avr->mem[dst] & imm;
     avr->mem[dst] = val;
@@ -188,7 +195,7 @@ void inst_or(struct avr *avr, uint16_t inst) {
 }
 
 void inst_ori(struct avr *avr, uint16_t inst) {
-    uint8_t dst = ((inst >> 4) & 0x0f) | 0x10,
+    uint8_t dst = ((inst >> 4) & 0x0f) + 16,
             imm = ((inst >> 4) & 0xf0) | (inst & 0x0f),
             val = avr->mem[dst] | imm;
     avr->mem[dst] = val;
@@ -276,9 +283,9 @@ void inst_mul(struct avr *avr, uint16_t inst) {
 }
 
 void inst_muls(struct avr *avr, uint16_t inst) {
-    uint8_t r1 = ((inst >> 4) & 0x0f) | 0x10,
-            r2 = (inst & 0x0f) | 0x10;
-    int16_t prod = (int8_t) avr->mem[r1] * (int8_t) avr->mem[r2];
+    uint8_t r1 = ((inst >> 4) & 0x0f) + 16,
+            r2 = (inst & 0x0f) + 16;
+    uint16_t prod = (int8_t) avr->mem[r1] * (int8_t) avr->mem[r2];
     avr->mem[0] = prod & 0xff;
     avr->mem[1] = (prod >> 8) & 0xff;
     printf("muls\tr%d, r%d\n", r1, r2);
@@ -289,9 +296,9 @@ void inst_muls(struct avr *avr, uint16_t inst) {
 }
 
 void inst_mulsu(struct avr *avr, uint16_t inst) {
-    uint8_t r1 = ((inst >> 4) & 0x07) | 0x10,
-            r2 = (inst & 0x07) | 0x10;
-    int16_t prod = (int8_t) avr->mem[r1] * (uint8_t) avr->mem[r2];
+    uint8_t r1 = ((inst >> 4) & 0x07) + 16,
+            r2 = (inst & 0x07) + 16;
+    uint16_t prod = (int8_t) avr->mem[r1] * (uint8_t) avr->mem[r2];
     avr->mem[0] = prod & 0xff;
     avr->mem[1] = (prod >> 8) & 0xff;
     printf("mulsu\tr%d, r%d\n", r1, r2);
@@ -302,24 +309,42 @@ void inst_mulsu(struct avr *avr, uint16_t inst) {
 }
 
 void inst_fmul(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("fmul\n");
+    uint8_t r1 = ((inst >> 4) & 0x07) + 16,
+            r2 = (inst & 0x07) + 16;
+    uint16_t prod = avr->mem[r1] * avr->mem[r2];
+    printf("fmul\tr%d, r%d\n", r1, r2);
+    avr->mem[0] = (prod << 1) & 0xff;
+    avr->mem[1] = (prod >> 7) & 0xff;
+    set_sreg_fmul(avr, prod);
     avr->pc += 2;
+    avr->progress = 1;
+    avr->status = CPU_STATUS_LONGINST;
 }
 
 void inst_fmuls(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("fmuls\n");
+    uint8_t r1 = ((inst >> 4) & 0x07) + 16,
+            r2 = (inst & 0x07) + 16;
+    uint16_t prod = (int8_t) avr->mem[r1] * (int8_t) avr->mem[r2];
+    printf("fmuls\tr%d, r%d\n", r1, r2);
+    avr->mem[0] = (prod << 1) & 0xff;
+    avr->mem[1] = (prod >> 7) & 0xff;
+    set_sreg_fmul(avr, prod);
     avr->pc += 2;
+    avr->progress = 1;
+    avr->status = CPU_STATUS_LONGINST;
 }
 
 void inst_fmulsu(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    printf("fmulsu\n");
+    uint8_t r1 = ((inst >> 4) & 0x07) + 16,
+            r2 = (inst & 0x07) + 16;
+    uint16_t prod = (int8_t) avr->mem[r1] * (uint8_t) avr->mem[r2];
+    printf("fmulsu\tr%d, r%d\n", r1, r2);
+    avr->mem[0] = (prod << 1) & 0xff;
+    avr->mem[1] = (prod >> 7) & 0xff;
+    set_sreg_fmul(avr, prod);
     avr->pc += 2;
+    avr->progress = 1;
+    avr->status = CPU_STATUS_LONGINST;
 }
 
 void inst_rjmp(struct avr *avr, uint16_t inst) {
@@ -423,7 +448,7 @@ void inst_cpc(struct avr *avr, uint16_t inst) {
 }
 
 void inst_cpi(struct avr *avr, uint16_t inst) {
-    uint8_t reg = ((inst >> 4) & 0x0f) | 0x10,
+    uint8_t reg = ((inst >> 4) & 0x0f) + 16,
             a = avr->mem[reg],
             b = ((inst >> 4) & 0xf0) | (inst & 0x0f),
             c = a - b;
@@ -835,7 +860,7 @@ void inst_movw(struct avr *avr, uint16_t inst) {
 }
 
 void inst_ldi(struct avr *avr, uint16_t inst) {
-    uint8_t dst = ((inst >> 4) & 0x0f) | 0x10,
+    uint8_t dst = ((inst >> 4) & 0x0f) + 16,
             val = ((inst >> 4) & 0xf0) | (inst & 0x0f);
     printf("ldi\tr%d, %d\n", dst, val);
     avr->mem[dst] = val;

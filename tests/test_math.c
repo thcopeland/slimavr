@@ -14,7 +14,7 @@ void test_bitwise(void) {
 
 void test_multiplication(void) {
     printf("testing multiplication operations... ");
-    run_test("asm/multiplication.hex", 100, MODEL_ATMEGA1280);
+    run_test("asm/multiplication.hex", 130, MODEL_ATMEGA1280);
 }
 
 int main(int argc, char **argv) {
