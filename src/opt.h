@@ -1,10 +1,5 @@
-#ifndef CHECKS
-#define CHECKS 0
+#ifdef DEBUG
+#define LOG(...) printf(__VA_ARGS__)
+#else
+#define LOG(...) ((void)0)
 #endif
-
-#define LOG(priority, ...)          \
-    do {                            \
-        if (CHECKS >= priority) {   \
-            printf(__VA_ARGS__);    \
-        }                           \
-    } while (0)

@@ -15,7 +15,7 @@ int avr_load_ihex(struct avr *avr, char *fname) {
              base_addr = 0;
 
      if (!f) {
-         LOG(1, "avr_load_ihex: %s\n", strerror(errno));
+         printf("avr_load_ihex: %s\n", strerror(errno));
          return EFILE;
      }
 
@@ -23,7 +23,7 @@ int avr_load_ihex(struct avr *avr, char *fname) {
         unsigned val, addr, count, type;
         // read the record header
         if (sscanf(buff, ":%2X%4X%2X", &count, &addr, &type) != 3) {
-            LOG(1, "avr_load_ihex: malformed header at %s:%d\n", fname, line);
+            printf("avr_load_ihex: malformed header at %s:%d\n", fname, line);
             fclose(f);
             return EFORMAT;
         }
@@ -53,7 +53,7 @@ int avr_load_ihex(struct avr *avr, char *fname) {
                 break;
             case 0x04: // extended linear address, unsupported
             case 0x05: // start linear address, unsupported
-                LOG(1, "avr_load_ihex: unsupported record type %02X at %s:%d\n", type, fname, line);
+                printf("avr_load_ihex: unsupported record type %02X at %s:%d\n", type, fname, line);
                 fclose(f);
                 return EFORMAT;
             default:
@@ -64,7 +64,7 @@ int avr_load_ihex(struct avr *avr, char *fname) {
         // test checksum
         sscanf(buff+i, "%2X", &val);
         if ((val + checksum) & 0xff) {
-            LOG(1, "avr_load_ihex: checksum failed at %s:%d (0x%02X != 0x%02X)\n", fname, line, (-checksum) & 0xff, val);
+            printf("avr_load_ihex: checksum failed at %s:%d (0x%02X != 0x%02X)\n", fname, line, (-checksum) & 0xff, val);
             fclose(f);
             return ECHECKSUM;
         }

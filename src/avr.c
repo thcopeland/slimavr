@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "model.h"
 #include "inst.h"
+#include "opt.h"
 #include "avr.h"
 
 struct avr *avr_init(struct avr_model model) {
@@ -35,7 +36,7 @@ void avr_free(struct avr *avr) {
 
 void avr_step(struct avr *avr) {
     if (avr->status == CPU_STATUS_LONGINST) {
-        printf("*** continuing last instruction ***\n");
+        LOG("*** continuing last instruction (%d) ***\n", avr->progress);
         if ((--avr->progress) <= 0) {
             avr->status = CPU_STATUS_NORMAL;
             avr->progress = 0;
@@ -46,7 +47,7 @@ void avr_step(struct avr *avr) {
                 inst_h = avr->rom[avr->pc+1];
         uint16_t inst = (inst_h << 8) + inst_l;
 
-        printf("%x:\t", avr->pc);
+        LOG("%x:\t", avr->pc);
 
         // instructions of the form 0000-00xx-xxxx-xxxx
         // nop, movw, muls, mulsu, fmul, fmuls, fmulsu
