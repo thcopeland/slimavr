@@ -2,7 +2,7 @@
 .byte 0x0042 ; padding
 status: .byte 1
 
-.cseg 0x000000
+.cseg
 init:
     clr r1
     sts status, r1

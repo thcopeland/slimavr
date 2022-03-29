@@ -8,14 +8,18 @@ struct avr_model {
     uint32_t memsize;       // size of ram, NOT including memory-mapped registers, in bytes
     uint16_t ramstart;      // starting address of general sram
     uint8_t pcsize;         // size of the program counter in bytes
+    uint8_t in_out_offset;  // offset when accessing memory-mappped registers with IN/OUT
 
     // memory-mapped registers
-    uint8_t in_out_offset;
-    uint16_t status_reg;
-    uint16_t stack_reg;
+    uint16_t reg_rampz;
+    uint16_t reg_eind;
+    uint16_t reg_stack;
+    uint16_t reg_status;
     // todo
 };
 
 extern const struct avr_model MODEL_ATMEGA1280;
+extern const struct avr_model MODEL_ATMEGA2560;
+
 
 #endif

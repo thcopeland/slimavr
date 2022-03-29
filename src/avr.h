@@ -4,15 +4,16 @@
 #include <stdint.h>
 #include "model.h"
 
-#define EBADINST 1
-#define EUNSUPPORTED 2
-#define EBADADDR 3
-#define EBADPADDR 4
+#define CPU_INVALID_INSTRUCTION 1
+#define CPU_UNSUPPORTED_INSTRUCTION 2
+#define CPU_INVALID_RAM_ADDRESS 3
+#define CPU_INVALID_ROM_ADDRESS 4
 
 #define CPU_STATUS_NORMAL 0
-#define CPU_STATUS_LONGINST 1
-#define CPU_STATUS_SLEEPING 2
-#define CPU_STATUS_INTERRUPTING 3
+#define CPU_STATUS_CRASHED 1
+#define CPU_STATUS_COMPLETING 2
+#define CPU_STATUS_SLEEPING 3
+#define CPU_STATUS_INTERRUPTING 4
 
 struct avr {
     struct avr_model model; // processor model

@@ -35,7 +35,7 @@ void avr_free(struct avr *avr) {
 #include <stdio.h>
 
 void avr_step(struct avr *avr) {
-    if (avr->status == CPU_STATUS_LONGINST) {
+    if (avr->status == CPU_STATUS_COMPLETING) {
         LOG("*** continuing last instruction (%d) ***\n", avr->progress);
         if ((--avr->progress) <= 0) {
             avr->status = CPU_STATUS_NORMAL;
@@ -60,9 +60,9 @@ void avr_step(struct avr *avr) {
                 else if ((inst_l & 0x88) == 0x08) inst_fmul(avr, inst);
                 else if ((inst_l & 0x88) == 0x80) inst_fmuls(avr, inst);
                 else if ((inst_l & 0x88) == 0x88) inst_fmulsu(avr, inst);
-                else avr->error = EBADINST;
+                else avr->error = CPU_INVALID_INSTRUCTION;
             } else {
-                avr->error = EBADINST;
+                avr->error = CPU_INVALID_INSTRUCTION;
             }
         }
         // instructions of the form 000x-xxxx-xxxx-xxxx
@@ -75,7 +75,7 @@ void avr_step(struct avr *avr) {
                 else if ((inst_h & 0xfc) == 0x18) inst_sub(avr, inst);
                 else if ((inst_h & 0xfc) == 0x1c) inst_adc(avr, inst);
                 else if ((inst_h & 0xfc) == 0x0c) inst_add(avr, inst);
-                else avr->error = EBADINST;
+                else avr->error = CPU_INVALID_INSTRUCTION;
             } else {
                 if ((inst_h & 0xfc) == 0x20) inst_and(avr, inst);
                 else if ((inst_h & 0xfc) == 0x24) inst_eor(avr, inst);
@@ -106,7 +106,7 @@ void avr_step(struct avr *avr) {
                 else if ((inst_l & 0x0f) == 0x0f) inst_push(avr, inst);
                 else if ((inst_l & 0x07) <= 0x02 ||
                          (inst_l & 0x0f) >= 0xc) inst_st(avr, inst);
-                else avr->error = EBADINST;
+                else avr->error = CPU_INVALID_INSTRUCTION;
             } else {
                 if ((inst_l & 0x0f) == 0x00) inst_lds(avr, inst);
                 else if ((inst_l & 0x0f) == 0x0f) inst_pop(avr, inst);
@@ -114,7 +114,7 @@ void avr_step(struct avr *avr) {
                          (inst_l & 0x0f) >= 0x0c) inst_ld(avr, inst);
                 else if ((inst_l & 0x0e) == 0x04) inst_lpm(avr, inst);
                 else if ((inst_l & 0x0e) == 0x06) inst_elpm(avr, inst);
-                else avr->error = EUNSUPPORTED; // xch, las, lac, lat
+                else avr->error = CPU_UNSUPPORTED_INSTRUCTION; // xch, las, lac, lat
             }
         }
         // instructions of the form 1001-010x-xxxx-xxxx
@@ -129,7 +129,7 @@ void avr_step(struct avr *avr) {
                 else if ((inst_l & 0x0f) == 0x05) inst_asr(avr, inst);
                 else if ((inst_l & 0x0f) == 0x06) inst_lsr(avr, inst);
                 else if ((inst_l & 0x0f) == 0x07) inst_ror(avr, inst);
-                else avr->error = EUNSUPPORTED;
+                else avr->error = CPU_UNSUPPORTED_INSTRUCTION;
             }
             // instructions of the form 1001-0101-xxxx-1000
             // ret, reti, sleep, break, wdr, lpm (r0), elpm (r0), spm
@@ -140,7 +140,7 @@ void avr_step(struct avr *avr) {
                 else if (inst_l == 0xc8) inst_lpm(avr, inst);
                 else if (inst_l == 0xd8) inst_elpm(avr, inst);
                 else if ((inst_l & 0xe8) == 0xe8) inst_spm(avr, inst);
-                else avr->error = EUNSUPPORTED; // including break, wdr
+                else avr->error = CPU_UNSUPPORTED_INSTRUCTION; // including break, wdr
             }
             // instructions of the form 1001-010x-xxxx-xxxx
             // se*, cl*, eijmp, icall, dec, des, jmp, call
@@ -156,7 +156,7 @@ void avr_step(struct avr *avr) {
             } else if ((inst_l & 0x0f) == 0x0a) inst_dec(avr, inst);
             else if ((inst_l & 0x0e) == 0x0c) inst_jmp(avr, inst);
             else if ((inst_l & 0x0e) == 0x0e) inst_call(avr, inst);
-            else avr->error = EUNSUPPORTED;
+            else avr->error = CPU_UNSUPPORTED_INSTRUCTION;
         }
         // instructions of the form 1001-xxxx-xxxx-xxxx
         // adiw, sbiw, cbi, sbi, sbic, sbis, mul
@@ -180,6 +180,6 @@ void avr_step(struct avr *avr) {
         else if ((inst_h & 0xfe) == 0xfa) inst_bst(avr, inst);
         else if ((inst_h & 0xfe) == 0xfe) inst_sbrs(avr, inst);
         else if ((inst_h & 0xfe) == 0xfc) inst_sbrc(avr, inst);
-        else avr->error = EUNSUPPORTED;
+        else avr->error = CPU_UNSUPPORTED_INSTRUCTION;
     }
 }
