@@ -8,6 +8,7 @@
 #define CPU_UNSUPPORTED_INSTRUCTION 2
 #define CPU_INVALID_RAM_ADDRESS 3
 #define CPU_INVALID_ROM_ADDRESS 4
+#define CPU_INVALID_STACK_ACCESS 5
 
 #define CPU_STATUS_NORMAL 0
 #define CPU_STATUS_CRASHED 1
@@ -21,8 +22,15 @@ struct avr {
     uint8_t status;         // processor state
     int8_t progress;        // cycles remaining for multi-cycle instructions
     uint32_t pc;            // program counter
+
+    // memory
+    uint8_t *mem;
+
+    // memory segments
     uint8_t *rom;           // program memory
-    uint8_t *mem;           // sram and memory-mapped registers
+    uint8_t *reg;           // registers
+    uint8_t *ram;           // sram
+    uint8_t *eep;           // eeprom
 };
 
 struct avr *avr_init(struct avr_model model);

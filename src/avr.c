@@ -5,6 +5,38 @@
 #include "opt.h"
 #include "avr.h"
 
+static void alloc_avr_memory(struct avr *avr) {
+    // In order to simplify and speed up data accesses, all data segments (register
+    // file, SRAM, EEPROM, program memory) are actually just pointers into a
+    // single contiguous block of memory, structured to match the address space.
+    //
+    // However, the program memory and EEPROM often aren't mapped into the data
+    // address space so we account for them separately if necessary.
+    uint32_t rom_offset = avr->model.romstart,
+             eep_offset = avr->model.eepstart,
+             unmapped = 0;
+
+    if (avr->model.romstart == 0) {
+        rom_offset = avr->model.memend + unmapped;
+        unmapped += avr->model.romsize;
+    }
+
+    if (avr->model.eepstart == 0) {
+        eep_offset = avr->model.memend + unmapped;
+        unmapped += avr->model.eepsize;
+    }
+
+    avr->mem = malloc(avr->model.memend + unmapped);
+    if (avr->mem != NULL) {
+        // set up each segment
+        avr->reg = avr->mem;
+        avr->ram = avr->mem + avr->model.ramstart;
+        avr->rom = avr->mem + rom_offset;
+        avr->eep = avr->mem + eep_offset;
+        memset(avr->reg, 0, avr->model.regsize);
+    }
+}
+
 struct avr *avr_init(struct avr_model model) {
     struct avr *avr = malloc(sizeof(*avr));
     if (avr) {
@@ -13,17 +45,16 @@ struct avr *avr_init(struct avr_model model) {
         avr->progress = 0;
         avr->model = model;
         avr->pc = 0;
-        avr->rom = malloc(model.romsize);
-        avr->mem = malloc(model.memsize+model.ramstart);
-        if (!avr->rom || !avr->mem) {
-            free(avr->rom);
-            free(avr->mem);
+
+        alloc_avr_memory(avr);
+
+        if (avr->mem == NULL) {
             free(avr);
             avr = NULL;
         } else {
-            memset(avr->mem, 0, model.ramstart);
-            avr->mem[model.reg_stack] = (model.memsize+model.ramstart - 1) & 0xff;
-            avr->mem[model.reg_stack+1] = (model.memsize+model.ramstart - 1) >> 8;
+            uint16_t sp = model.ramstart+model.ramsize - 1;
+            avr->reg[model.reg_stack+1] = sp >> 8;
+            avr->reg[model.reg_stack] = sp & 0xff;
         }
     }
     return avr;
@@ -31,7 +62,6 @@ struct avr *avr_init(struct avr_model model) {
 
 void avr_free(struct avr *avr) {
     if (avr) {
-        free(avr->rom);
         free(avr->mem);
         free(avr);
     }
