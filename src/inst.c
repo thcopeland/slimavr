@@ -1,6 +1,12 @@
 #include <stdio.h>
+#include <assert.h>
 #include "inst.h"
 #include "opt.h"
+
+#define AVR_REG(n) (n)
+#define AVR_REG_X 26
+#define AVR_REG_Y 28
+#define AVR_REG_Z 30
 
 static int is_32bit_inst(uint16_t inst) {
     return (inst & 0xfc0f) == 0x9000 || // lds, sts
@@ -392,7 +398,7 @@ void inst_eijmp(struct avr *avr, uint16_t inst) {
 }
 
 void inst_jmp(struct avr *avr, uint16_t inst) {
-    uint16_t inst2 = avr->rom[avr->pc+2];
+    uint16_t inst2 = ((uint16_t) avr->rom[avr->pc+3] << 8) | avr->rom[avr->pc+2];
     avr->pc = ((((inst >> 3) & 0x3e) | (inst & 1)) << 16) | inst2;
     LOG("jmp\t0x%06x\n", avr->pc);
     if (avr->pc < avr->model.romsize) {
@@ -405,39 +411,87 @@ void inst_jmp(struct avr *avr, uint16_t inst) {
     }
 }
 
+static void sim_call(struct avr *avr, uint32_t addr, uint32_t ret, uint8_t duration) {
+    uint16_t sp = ((uint16_t) avr->mem[avr->model.reg_stack+1] << 8) | avr->mem[avr->model.reg_stack];
+    ret >>= 1;
+    avr->mem[sp--] = ret & 0xff;
+    avr->mem[sp--] = (ret >> 8) & 0xff;
+    if (avr->model.pcsize == 3) {
+        avr->mem[sp--] = (ret >> 16) & 0x3f;
+    }
+    avr->mem[avr->model.reg_stack] = sp & 0xff;
+    avr->mem[avr->model.reg_stack+1] = sp >> 8;
+    avr->pc = addr;
+    if (avr->pc < avr->model.romsize) {
+        avr->progress = duration + (avr->model.pcsize > 2 ? 1 : 0);
+        avr->status = CPU_STATUS_COMPLETING;
+    } else {
+        LOG("PC 0x%06x exceeds program memory\n", avr->pc);
+        avr->status = CPU_STATUS_CRASHED;
+        avr->error = CPU_INVALID_ROM_ADDRESS;
+    }
+}
+
 void inst_rcall(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("rcall\n");
-    avr->pc += 2;
+    int16_t diff = (int16_t) (inst << 4) >> 3;
+    LOG("rcall\t%+d\n", diff);
+    sim_call(avr, avr->pc+diff+2, avr->pc+2, 2);
 }
 
 void inst_icall(struct avr *avr, uint16_t inst) {
-    (void) avr;
     (void) inst;
+    uint16_t addr = ((uint32_t) avr->mem[AVR_REG_Z+1] << 9) |
+                    ((uint32_t) avr->mem[AVR_REG_Z] << 1);
     LOG("icall\n");
-    avr->pc += 2;
+    sim_call(avr, addr, avr->pc+2, 2);
 }
 
 void inst_eicall(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("eicall\n");
-    avr->pc += 2;
+    if (avr->model.pcsize == 3) {
+        uint32_t addr = ((uint32_t) avr->mem[avr->model.reg_eind] << 17) |
+                        ((uint32_t) avr->mem[AVR_REG_Z+1] << 9) |
+                        ((uint32_t) avr->mem[AVR_REG_Z] << 1);
+
+        LOG("eicall\n");
+        sim_call(avr, addr, avr->pc+2, 2);
+    } else {
+        avr->error = CPU_INVALID_INSTRUCTION;
+        avr->status = CPU_STATUS_CRASHED;
+    }
 }
 
 void inst_call(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("call\n");
-    avr->pc += 4;
+    uint16_t inst2 = ((uint16_t) avr->rom[avr->pc+3] << 8) | avr->rom[avr->pc+2];
+    uint32_t addr = ((((inst >> 3) & 0x3e) | (inst & 1)) << 16) | inst2;
+    sim_call(avr, 2*addr, avr->pc+4, 3);
+    LOG("call\t0x%06x\n", 2*addr);
+}
+
+static void sim_return(struct avr *avr, uint8_t duration) {
+    uint16_t sp = ((uint16_t) avr->mem[avr->model.reg_stack+1] << 8) | avr->mem[avr->model.reg_stack];
+    uint32_t ret = 0;
+    if (avr->model.pcsize == 3) {
+        ret |= ((uint32_t) avr->mem[++sp] << 16);
+    }
+    ret |= ((uint32_t) avr->mem[++sp] << 8);
+    ret |= avr->mem[++sp];
+    avr->mem[avr->model.reg_stack] = sp & 0xff;
+    avr->mem[avr->model.reg_stack+1] = sp >> 8;
+    avr->pc = ret << 1;
+    if (avr->pc < avr->model.romsize) {
+        avr->progress = duration + (avr->model.pcsize > 2 ? 1 : 0);
+        avr->status = CPU_STATUS_COMPLETING;
+    } else {
+        LOG("PC 0x%06x exceeds program memory\n", avr->pc);
+        avr->status = CPU_STATUS_CRASHED;
+        avr->error = CPU_INVALID_ROM_ADDRESS;
+    }
 }
 
 void inst_ret(struct avr *avr, uint16_t inst) {
-    (void) avr;
     (void) inst;
     LOG("ret\n");
-    avr->pc += 2;
+    sim_return(avr, 3);
 }
 
 void inst_reti(struct avr *avr, uint16_t inst) {
@@ -896,11 +950,71 @@ void inst_ldi(struct avr *avr, uint16_t inst) {
     avr->pc += 2;
 }
 
-void inst_ld(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("ld\n");
-    avr->pc += 2;
+static inline void sim_load(struct avr *avr, uint16_t ptr, uint16_t ext, uint16_t inst) {
+    uint8_t dst = (inst >> 4) & 0x1f;
+    uint32_t addr;
+
+    if (avr->model.memsize+avr->model.ramstart <= 0x100) {
+        // only use the low pointer byte
+        addr = avr->mem[ptr];
+        avr->mem[ptr] = addr;
+    } else if (avr->model.memsize+avr->model.ramstart <= 0x10000) {
+        // use the entire pointer (general case)
+        addr = (avr->mem[ptr+1] << 8) | avr->mem[ptr];
+    } else {
+        // extend with the RAMP(XYZ) register (not really supported)
+        assert(ext != 0);
+        addr = (avr->mem[ext] << 16) | (avr->mem[ptr+1] << 8) | avr->mem[ptr];
+    }
+
+    if ((inst & 0x03) == 0x02) addr--; // pre-decrement
+    if (addr >= avr->model.memsize+avr->model.ramstart) {
+        avr->error = CPU_INVALID_RAM_ADDRESS;
+        avr->status = CPU_STATUS_CRASHED;
+        return;
+    } else {
+        avr->status = CPU_STATUS_COMPLETING;
+        if (addr >= avr->model.ramstart) avr->progress = 1;
+        avr->pc += 2;
+    }
+    avr->mem[dst] = avr->mem[addr];
+    if ((inst & 0x03) == 0x01) addr++; // post-increment
+
+    // save the updated address
+    if (avr->model.memsize+avr->model.ramstart <= 0x100) {
+        avr->mem[ptr] = addr & 0xff;
+    } else if (avr->model.memsize+avr->model.ramstart <= 0x10000) {
+        avr->mem[ptr+1] = addr >> 8;
+        avr->mem[ptr] = addr & 0xff;
+    } else {
+        avr->mem[ext] = addr >> 16;
+        avr->mem[ptr+1] = addr >> 8;
+        avr->mem[ptr] = addr & 0xff;
+    }
+}
+
+void inst_ldx(struct avr *avr, uint16_t inst) {
+    sim_load(avr, AVR_REG_X, avr->model.reg_rampx, inst);
+    LOG("ld r%d, %sX%s\n",
+        (inst >> 4) & 0x1f,
+        ((inst & 0x03) == 0x02) ? "-" : "",
+        ((inst & 0x03) == 0x01) ? "+" : "");
+}
+
+void inst_ldy(struct avr *avr, uint16_t inst) {
+    sim_load(avr, AVR_REG_Y, avr->model.reg_rampy, inst);
+    LOG("ld r%d, %sY%s\n",
+        (inst >> 4) & 0x1f,
+        ((inst & 0x03) == 0x02) ? "-" : "",
+        ((inst & 0x03) == 0x01) ? "+" : "");
+}
+
+void inst_ldz(struct avr *avr, uint16_t inst) {
+    sim_load(avr, AVR_REG_Z, avr->model.reg_rampz, inst);
+    LOG("ld r%d, %sZ%s\n",
+        (inst >> 4) & 0x1f,
+        ((inst & 0x03) == 0x02) ? "-" : "",
+        ((inst & 0x03) == 0x01) ? "+" : "");
 }
 
 void inst_ldd(struct avr *avr, uint16_t inst) {
@@ -916,10 +1030,15 @@ void inst_lds(struct avr *avr, uint16_t inst) {
             addr_h = avr->rom[avr->pc+3];
     uint16_t addr = (addr_h << 8) | addr_l;
     LOG("lds\tr%d, 0x%04x\n", dst, addr);
-    avr->mem[dst] = avr->mem[addr];
-    avr->pc += 4;
-    avr->progress = 1;
-    avr->status = CPU_STATUS_COMPLETING;
+    if (addr >= avr->model.memsize+avr->model.ramstart) {
+        avr->error = CPU_INVALID_RAM_ADDRESS;
+        avr->status = CPU_STATUS_CRASHED;
+    } else {
+        avr->mem[dst] = avr->mem[addr];
+        avr->pc += 4;
+        avr->progress = 1;
+        avr->status = CPU_STATUS_COMPLETING;
+    }
 }
 
 void inst_st(struct avr *avr, uint16_t inst) {

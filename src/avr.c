@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include "model.h"
 #include "inst.h"
 #include "opt.h"
@@ -8,7 +9,7 @@ struct avr *avr_init(struct avr_model model) {
     struct avr *avr = malloc(sizeof(*avr));
     if (avr) {
         avr->error = 0;
-        avr->status = 0;
+        avr->status = CPU_STATUS_NORMAL;
         avr->progress = 0;
         avr->model = model;
         avr->pc = 0;
@@ -19,6 +20,10 @@ struct avr *avr_init(struct avr_model model) {
             free(avr->mem);
             free(avr);
             avr = NULL;
+        } else {
+            memset(avr->mem, 0, model.ramstart);
+            avr->mem[model.reg_stack] = (model.memsize+model.ramstart - 1) & 0xff;
+            avr->mem[model.reg_stack+1] = (model.memsize+model.ramstart - 1) >> 8;
         }
     }
     return avr;
@@ -41,7 +46,6 @@ void avr_step(struct avr *avr) {
             avr->status = CPU_STATUS_NORMAL;
             avr->progress = 0;
         }
-        // delay?
     } else if (avr->status == CPU_STATUS_NORMAL) {
         uint8_t inst_l = avr->rom[avr->pc],
                 inst_h = avr->rom[avr->pc+1];
@@ -109,9 +113,10 @@ void avr_step(struct avr *avr) {
                 else avr->error = CPU_INVALID_INSTRUCTION;
             } else {
                 if ((inst_l & 0x0f) == 0x00) inst_lds(avr, inst);
+                else if ((inst_l & 0x0c) == 0x08) inst_ldy(avr, inst);
+                else if ((inst_l & 0x0c) == 0x00) inst_ldz(avr, inst);
                 else if ((inst_l & 0x0f) == 0x0f) inst_pop(avr, inst);
-                else if ((inst_l & 0x07) <= 0x02 ||
-                         (inst_l & 0x0f) >= 0x0c) inst_ld(avr, inst);
+                else if ((inst_l & 0x0f) >= 0x0c) inst_ldx(avr, inst);
                 else if ((inst_l & 0x0e) == 0x04) inst_lpm(avr, inst);
                 else if ((inst_l & 0x0e) == 0x06) inst_elpm(avr, inst);
                 else avr->error = CPU_UNSUPPORTED_INSTRUCTION; // xch, las, lac, lat
