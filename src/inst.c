@@ -447,6 +447,7 @@ void inst_icall(struct avr *avr, uint16_t inst) {
 }
 
 void inst_eicall(struct avr *avr, uint16_t inst) {
+    (void) inst;
     if (avr->model.pcsize == 3) {
         uint32_t addr = ((uint32_t) avr->mem[avr->model.reg_eind] << 17) |
                         ((uint32_t) avr->mem[AVR_REG_Z+1] << 9) |
@@ -954,11 +955,11 @@ static inline void sim_load(struct avr *avr, uint16_t ptr, uint16_t ext, uint16_
     uint8_t dst = (inst >> 4) & 0x1f;
     uint32_t addr;
 
-    if (avr->model.memsize+avr->model.ramstart <= 0x100) {
+    if (avr->model.ramend <= 0x100) {
         // only use the low pointer byte
         addr = avr->mem[ptr];
         avr->mem[ptr] = addr;
-    } else if (avr->model.memsize+avr->model.ramstart <= 0x10000) {
+    } else if (avr->model.ramend <= 0x10000) {
         // use the entire pointer (general case)
         addr = (avr->mem[ptr+1] << 8) | avr->mem[ptr];
     } else {
@@ -968,7 +969,7 @@ static inline void sim_load(struct avr *avr, uint16_t ptr, uint16_t ext, uint16_
     }
 
     if ((inst & 0x03) == 0x02) addr--; // pre-decrement
-    if (addr >= avr->model.memsize+avr->model.ramstart) {
+    if (addr >= avr->model.ramend) {
         avr->error = CPU_INVALID_RAM_ADDRESS;
         avr->status = CPU_STATUS_CRASHED;
         return;
@@ -981,9 +982,9 @@ static inline void sim_load(struct avr *avr, uint16_t ptr, uint16_t ext, uint16_
     if ((inst & 0x03) == 0x01) addr++; // post-increment
 
     // save the updated address
-    if (avr->model.memsize+avr->model.ramstart <= 0x100) {
+    if (avr->model.ramend <= 0x100) {
         avr->mem[ptr] = addr & 0xff;
-    } else if (avr->model.memsize+avr->model.ramstart <= 0x10000) {
+    } else if (avr->model.ramend <= 0x10000) {
         avr->mem[ptr+1] = addr >> 8;
         avr->mem[ptr] = addr & 0xff;
     } else {
@@ -1030,7 +1031,7 @@ void inst_lds(struct avr *avr, uint16_t inst) {
             addr_h = avr->rom[avr->pc+3];
     uint16_t addr = (addr_h << 8) | addr_l;
     LOG("lds\tr%d, 0x%04x\n", dst, addr);
-    if (addr >= avr->model.memsize+avr->model.ramstart) {
+    if (addr >= avr->model.ramend) {
         avr->error = CPU_INVALID_RAM_ADDRESS;
         avr->status = CPU_STATUS_CRASHED;
     } else {

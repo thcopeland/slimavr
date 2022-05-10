@@ -22,7 +22,7 @@ struct avr {
     int8_t progress;        // cycles remaining for multi-cycle instructions
     uint32_t pc;            // program counter
     uint8_t *rom;           // program memory
-    uint8_t *mem;           // sram and registers
+    uint8_t *mem;           // sram and memory-mapped registers
 };
 
 struct avr *avr_init(struct avr_model model);

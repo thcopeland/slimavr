@@ -6,11 +6,12 @@
 struct avr_model {
     uint32_t romsize;       // size of program memory in bytes
     uint32_t memsize;       // size of ram, NOT including memory-mapped registers, in bytes
-    uint16_t ramstart;      // starting address of general sram
+    uint32_t ramstart;      // first address pointing to actual sram
+    uint32_t ramend;        // highest valid address (generally ramstart+memsize)
     uint8_t pcsize;         // size of the program counter in bytes
     uint8_t in_out_offset;  // offset when accessing memory-mappped registers with IN/OUT
 
-    // memory-mapped registers
+    // memory-mapped register addresses
     uint16_t reg_rampx;
     uint16_t reg_rampy;
     uint16_t reg_rampz;
