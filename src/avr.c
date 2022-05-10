@@ -137,9 +137,10 @@ void avr_step(struct avr *avr) {
         else if ((inst_h & 0xfc) == 0x90) {
             if (inst_h & 0x02) {
                 if ((inst_l & 0x0f) == 0x00) inst_sts(avr, inst);
+                else if ((inst_l & 0x0c) == 0x08) inst_sty(avr, inst);
+                else if ((inst_l & 0x0c) == 0x00) inst_stz(avr, inst);
                 else if ((inst_l & 0x0f) == 0x0f) inst_push(avr, inst);
-                else if ((inst_l & 0x07) <= 0x02 ||
-                         (inst_l & 0x0f) >= 0xc) inst_st(avr, inst);
+                else if ((inst_l & 0x0f) >= 0xc) inst_stx(avr, inst);
                 else avr->error = CPU_INVALID_INSTRUCTION;
             } else {
                 if ((inst_l & 0x0f) == 0x00) inst_lds(avr, inst);

@@ -578,12 +578,12 @@ void inst_sbis(struct avr *avr, uint16_t inst) {
 }
 
 void inst_branch(struct avr *avr, uint16_t inst) {
-    uint8_t dpc = ((int8_t) (inst >> 2)) >> 1,
-            val = (inst >> 10) & 0x01,
+    int8_t diff = ((int8_t) (inst >> 2)) >> 1;
+    uint8_t val = (inst >> 10) & 0x01,
             chk = (avr->reg[avr->model.reg_status] >> (inst & 0x07)) ^ val;
-    LOG("brch\t%+d on %cSREG[%d] (%d)", dpc, val ? '~' : ' ', inst & 0x07, avr->reg[avr->model.reg_status]);
+    LOG("brch\t%+d on %cSREG[%d] (%d)", diff, val ? '~' : ' ', inst & 0x07, avr->reg[avr->model.reg_status]);
     if (chk & 1) {
-        avr->pc += 2*(dpc+1);
+        avr->pc += 2*(diff+1);
         avr->progress = 1;
         avr->status = CPU_STATUS_COMPLETING;
         LOG(" -> taken\n");
@@ -959,25 +959,20 @@ void inst_ldi(struct avr *avr, uint16_t inst) {
     avr->pc += 2;
 }
 
-static inline void sim_load(struct avr *avr, uint16_t ptr, uint16_t ext, uint16_t inst) {
-    uint8_t dst = (inst >> 4) & 0x1f;
-    uint32_t addr;
+static void sim_access(struct avr *avr, uint16_t ptr, uint8_t disp, uint8_t reg, uint8_t opts) {
+    uint16_t addr;
 
+    // fetch address
     if (avr->model.memend <= 0x100) {
-        // only use the low pointer byte
         addr = avr->reg[ptr];
-        avr->reg[ptr] = addr;
-    } else if (avr->model.memend <= 0x10000) {
-        // use the entire pointer (general case)
-        addr = (avr->reg[ptr+1] << 8) | avr->reg[ptr];
     } else {
-        // extend with the RAMP(XYZ) register (not really supported)
-        assert(ext != 0);
-        addr = (avr->reg[ext] << 16) | (avr->reg[ptr+1] << 8) | avr->reg[ptr];
+        addr = ((uint16_t) avr->reg[ptr+1] << 8) | avr->reg[ptr];
     }
 
-    if ((inst & 0x03) == 0x02) addr--; // pre-decrement
-    if (addr >= avr->model.memend) {
+    // pre-decrement
+    if (opts & 0x2) addr--;
+
+    if (addr+disp >= avr->model.memend) {
         avr->error = CPU_INVALID_RAM_ADDRESS;
         avr->status = CPU_STATUS_CRASHED;
         return;
@@ -986,42 +981,49 @@ static inline void sim_load(struct avr *avr, uint16_t ptr, uint16_t ext, uint16_
         if (addr >= avr->model.ramstart) avr->progress = 1;
         avr->pc += 2;
     }
-    avr->reg[dst] = avr->mem[addr];
-    if ((inst & 0x03) == 0x01) addr++; // post-increment
+
+    // set or load the value at the address
+    if (opts & 0x4) {
+        avr->mem[addr+disp] = avr->reg[reg];
+    } else {
+        avr->reg[reg] = avr->mem[addr+disp];
+    }
+
+    // post-increment
+    if (opts & 0x1) addr++;
 
     // save the updated address
     if (avr->model.memend <= 0x100) {
         avr->reg[ptr] = addr & 0xff;
-    } else if (avr->model.memend <= 0x10000) {
-        avr->reg[ptr+1] = addr >> 8;
-        avr->reg[ptr] = addr & 0xff;
     } else {
-        avr->reg[ext] = addr >> 16;
         avr->reg[ptr+1] = addr >> 8;
         avr->reg[ptr] = addr & 0xff;
     }
 }
 
 void inst_ldx(struct avr *avr, uint16_t inst) {
-    sim_load(avr, AVR_REG_X, avr->model.reg_rampx, inst);
-    LOG("ld r%d, %sX%s\n",
-        (inst >> 4) & 0x1f,
+    uint8_t dst = (inst >> 4) & 0x1f;
+    sim_access(avr, AVR_REG_X, 0, dst, inst & 0x3);
+    LOG("ld\tr%d, %sX%s\n",
+        dst,
         ((inst & 0x03) == 0x02) ? "-" : "",
         ((inst & 0x03) == 0x01) ? "+" : "");
 }
 
 void inst_ldy(struct avr *avr, uint16_t inst) {
-    sim_load(avr, AVR_REG_Y, avr->model.reg_rampy, inst);
-    LOG("ld r%d, %sY%s\n",
-        (inst >> 4) & 0x1f,
+    uint8_t dst = (inst >> 4) & 0x1f;
+    sim_access(avr, AVR_REG_Y, 0, dst, inst & 0x3);
+    LOG("ld\tr%d, %sX%s\n",
+        dst,
         ((inst & 0x03) == 0x02) ? "-" : "",
         ((inst & 0x03) == 0x01) ? "+" : "");
 }
 
 void inst_ldz(struct avr *avr, uint16_t inst) {
-    sim_load(avr, AVR_REG_Z, avr->model.reg_rampz, inst);
-    LOG("ld r%d, %sZ%s\n",
-        (inst >> 4) & 0x1f,
+    uint8_t dst = (inst >> 4) & 0x1f;
+    sim_access(avr, AVR_REG_Z, 0, dst, inst & 0x3);
+    LOG("ld\tr%d, %sX%s\n",
+        dst,
         ((inst & 0x03) == 0x02) ? "-" : "",
         ((inst & 0x03) == 0x01) ? "+" : "");
 }
@@ -1029,9 +1031,8 @@ void inst_ldz(struct avr *avr, uint16_t inst) {
 void inst_ldd(struct avr *avr, uint16_t inst) {
     uint8_t dst = (inst >> 4) & 0x1f,
             dsp = ((inst & 0x2000) >> 8) | ((inst & 0x0c00) >> 7) | (inst & 0x07);
-    // uint32_t addr =
-    LOG("ldd\n");
-    avr->pc += 2;
+    sim_access(avr, (inst & 0x08) ? AVR_REG_Y : AVR_REG_Z, dsp, dst, 0);
+    LOG("ldd\tr%d, %c+%d\n", dst, (inst & 0x08) ? 'Y' : 'Z', dsp);
 }
 
 void inst_lds(struct avr *avr, uint16_t inst) {
@@ -1051,18 +1052,38 @@ void inst_lds(struct avr *avr, uint16_t inst) {
     }
 }
 
-void inst_st(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("st\n");
-    avr->pc += 2;
+void inst_stx(struct avr *avr, uint16_t inst) {
+    uint8_t src = (inst >> 4) & 0x1f;
+    sim_access(avr, AVR_REG_X, 0, src, 0x4 | (inst & 0x3));
+    LOG("st\t%sX%s, r%d\n",
+        ((inst & 0x03) == 0x02) ? "-" : "",
+        ((inst & 0x03) == 0x01) ? "+" : "",
+        src);
+}
+
+void inst_sty(struct avr *avr, uint16_t inst) {
+    uint8_t src = (inst >> 4) & 0x1f;
+    sim_access(avr, AVR_REG_Y, 0, src, 0x4 | (inst & 0x3));
+    LOG("st\t%sY%s, r%d\n",
+        ((inst & 0x03) == 0x02) ? "-" : "",
+        ((inst & 0x03) == 0x01) ? "+" : "",
+        src);
+}
+
+void inst_stz(struct avr *avr, uint16_t inst) {
+    uint8_t src = (inst >> 4) & 0x1f;
+    sim_access(avr, AVR_REG_Z, 0, src, 0x4 | (inst & 0x3));
+    LOG("st\t%sZ%s, r%d\n",
+        ((inst & 0x03) == 0x02) ? "-" : "",
+        ((inst & 0x03) == 0x01) ? "+" : "",
+        src);
 }
 
 void inst_std(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("std\n");
-    avr->pc += 2;
+    uint8_t src = (inst >> 4) & 0x1f,
+            dsp = ((inst & 0x2000) >> 8) | ((inst & 0x0c00) >> 7) | (inst & 0x07);
+    sim_access(avr, (inst & 0x08) ? AVR_REG_Y : AVR_REG_Z, dsp, src, 0x4);
+    LOG("std\t%c+%d, r%d\n", (inst & 0x08) ? 'Y' : 'Z', dsp, src);
 }
 
 void inst_sts(struct avr *avr, uint16_t inst) {
@@ -1071,10 +1092,15 @@ void inst_sts(struct avr *avr, uint16_t inst) {
             addr_h = avr->rom[avr->pc+3];
     uint16_t addr = (addr_h << 8) | addr_l;
     LOG("sts\t0x%04x, r%d\n", addr, src);
-    avr->mem[addr] = avr->reg[src];
-    avr->pc += 4;
-    avr->progress = 1;
-    avr->status = CPU_STATUS_COMPLETING;
+    if (addr >= avr->model.memend) {
+        avr->error = CPU_INVALID_RAM_ADDRESS;
+        avr->status = CPU_STATUS_CRASHED;
+    } else {
+        avr->mem[addr] = avr->reg[src];
+        avr->pc += 4;
+        avr->progress = 1;
+        avr->status = CPU_STATUS_COMPLETING;
+    }
 }
 
 void inst_lpm(struct avr *avr, uint16_t inst) {

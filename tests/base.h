@@ -6,6 +6,11 @@ void run_test(char *fname, long duration, struct avr_model model) {
     if (avr_load_ihex(avr, fname) == 0) {
         for (long i = 0; i < duration; i++) {
             avr_step(avr);
+
+            if (avr->status == CPU_STATUS_CRASHED) {
+                printf("cpu crashed (%d)\n", avr->error);
+                break;
+            }
         }
         if (avr->mem[avr->model.ramstart+0x42] != 0) {
             printf("fail (%d)\n", avr->mem[avr->model.ramstart+0x42]);

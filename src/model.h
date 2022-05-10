@@ -35,8 +35,6 @@ struct avr_model {
     uint8_t in_out_offset;  // offset when accessing memory-mappped registers with IN/OUT
 
     // memory-mapped register addresses
-    uint16_t reg_rampx;
-    uint16_t reg_rampy;
     uint16_t reg_rampz;
     uint16_t reg_eind;
     uint16_t reg_stack;
