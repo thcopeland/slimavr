@@ -976,16 +976,19 @@ void inst_bld(struct avr *avr, uint16_t inst) {
 // }
 
 void inst_mov(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("mov\n");
+    uint8_t dst = (inst >> 4) & 0x1f,
+            src = ((inst >> 5) & 0x10) | (inst & 0x0f);
+    avr->reg[dst] = avr->reg[src];
+    LOG("mov\tr%d, r%d\n", dst, src);
     avr->pc += 2;
 }
 
 void inst_movw(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("movw\n");
+    uint8_t dst = (inst >> 3) & 0x1e,
+            src = (inst << 1) & 0x1e;
+    avr->reg[dst] = avr->reg[src];
+    avr->reg[dst+1] = avr->reg[src+1];
+    LOG("movw\tr%d, r%d\n", dst, src);
     avr->pc += 2;
 }
 

@@ -4,7 +4,7 @@
 
 void test_sram(void) {
     printf("testing SRAM... ");
-    run_test("asm/sram.hex", 240, MODEL_ATMEGA1280);
+    run_test("asm/sram.hex", 260, MODEL_ATMEGA1280);
 }
 
 int main(int argc, char **argv) {

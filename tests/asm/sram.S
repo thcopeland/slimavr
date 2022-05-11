@@ -114,6 +114,21 @@ _tr_loop:
     cpc r6, r22
     cpc r7, r23
     brne test_regs_end
+    ldi r16, 30
+    ldi r17, 140
+    movw r4, r16
+    cp r4, r16
+    cpc r5, r17
+    brne test_regs_end
+    cpi r16, 30
+    brne test_regs_end
+    cpi r17, 140
+    brne test_regs_end
+    mov r17, r16
+    cpi r16, 30
+    brne test_regs_end
+    cpi r17, 30
+    brne test_regs_end
     clr r1
     sts status, r1
 test_regs_end:
