@@ -66,7 +66,6 @@ void inst_branch(struct avr *avr, uint16_t inst);
 // void inst_brvc(struct avr *avr, uint16_t inst);
 // void inst_brie(struct avr *avr, uint16_t inst);
 // void inst_brid(struct avr *avr, uint16_t inst);
-void inst_bit(struct avr *avr, uint16_t inst);
 void inst_sbi(struct avr *avr, uint16_t inst);
 void inst_cbi(struct avr *avr, uint16_t inst);
 void inst_lsl(struct avr *avr, uint16_t inst);

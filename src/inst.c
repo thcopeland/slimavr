@@ -6,7 +6,7 @@
 
 static int is_32bit_inst(uint16_t inst) {
     return (inst & 0xfc0f) == 0x9000 || // lds, sts
-           (inst & 0xfe06) == 0x9406;   // jmp, call
+           (inst & 0xfe0c) == 0x940c;   // jmp, call
 }
 
 static inline void set_sreg_add(struct avr *avr, uint8_t a, uint8_t b, uint8_t c) {
@@ -253,8 +253,8 @@ void inst_inc(struct avr *avr, uint16_t inst) {
 
 void inst_in(struct avr *avr, uint16_t inst) {
     uint8_t dst = (inst >> 4) & 0x1f,
-            addr = (((inst >> 5) & 0x30) | (inst & 0xf)) + avr->model.in_out_offset;
-    LOG("in\tr%d, 0x%02x\n", dst, addr - avr->model.in_out_offset);
+            addr = (((inst >> 5) & 0x30) | (inst & 0xf)) + avr->model.io_offset;
+    LOG("in\tr%d, 0x%02x\n", dst, addr - avr->model.io_offset);
     avr->reg[dst] = avr->reg[addr];
     avr->pc += 2;
 }
@@ -589,7 +589,7 @@ void inst_sbic(struct avr *avr, uint16_t inst) {
     uint8_t reg = (inst >> 3) & 0x1f,
             mask = 1 << (inst & 0x7);
     LOG("sbic\t0x%02x, %d\n", reg, inst & 0x7);
-    if (avr->reg[reg+avr->model.in_out_offset] & mask) {
+    if (avr->reg[reg+avr->model.io_offset] & mask) {
         avr->pc += 2;
     } else {
         sim_skip(avr);
@@ -600,7 +600,7 @@ void inst_sbis(struct avr *avr, uint16_t inst) {
     uint8_t reg = (inst >> 3) & 0x1f,
             mask = 1 << (inst & 0x7);
     LOG("sbis\t0x%02x, %d\n", reg, inst & 0x7);
-    if (avr->reg[reg+avr->model.in_out_offset] & mask) {
+    if (avr->reg[reg+avr->model.io_offset] & mask) {
         sim_skip(avr);
     } else {
         avr->pc += 2;
@@ -764,24 +764,19 @@ void inst_branch(struct avr *avr, uint16_t inst) {
 //     avr->pc += 2;
 // }
 
-void inst_bit(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("bit\n");
-    avr->pc += 2;
-}
-
 void inst_sbi(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("sbi\n");
+    uint8_t reg = ((inst >> 3) & 0xf) + avr->model.io_offset,
+            mask = 1 << (inst & 0x7);
+    avr->reg[reg] |= mask;
+    LOG("sbi 0x%02x, %d\n", reg-avr->model.io_offset, inst & 0x7);
     avr->pc += 2;
 }
 
 void inst_cbi(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("cbi\n");
+    uint8_t reg = ((inst >> 3) & 0xf) + avr->model.io_offset,
+            mask = 1 << (inst & 0x7);
+    avr->reg[reg] &= ~mask;
+    LOG("cbi 0x%02x, %d\n", reg-avr->model.io_offset, inst & 0x7);
     avr->pc += 2;
 }
 
@@ -1156,8 +1151,8 @@ void inst_spm(struct avr *avr, uint16_t inst) {
 
 void inst_out(struct avr *avr, uint16_t inst) {
     uint8_t src = (inst >> 4) & 0x1f,
-            addr = (((inst >> 5) & 0x30) | (inst & 0xf)) + avr->model.in_out_offset;
-    LOG("out\t0x%02x, r%d\n", addr - avr->model.in_out_offset, src);
+            addr = (((inst >> 5) & 0x30) | (inst & 0xf)) + avr->model.io_offset;
+    LOG("out\t0x%02x, r%d\n", addr - avr->model.io_offset, src);
     avr->reg[addr] = avr->reg[src];
     avr->pc += 2;
 }

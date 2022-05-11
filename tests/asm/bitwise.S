@@ -39,6 +39,13 @@ test_all:
 
     ldi r16, 6
     sts status, r16
+    rcall test_io
+    lds r16, status
+    cpi r16, 0
+    brne stall
+
+    ldi r16, 7
+    sts status, r16
     rcall test_skips
     lds r16, status
     cpi r16, 0
@@ -138,6 +145,36 @@ test_status:
     brne test_status_end
     sts status, r1
 test_status_end:
+    ret
+
+test_io:
+    sbi PORTC, 7
+    cbi PORTC, 6
+    sbi PORTC, 5
+    cbi PORTC, 4
+    sbi PORTC, 3
+    cbi PORTC, 2
+    sbi PORTC, 1
+    cbi PORTC, 0
+    sbis PORTC, 7
+    rjmp test_io_end
+    sbic PORTC, 6
+    rjmp test_io_end
+    sbis PORTC, 5
+    rjmp test_io_end
+    sbic PORTC, 4
+    rjmp test_io_end
+    sbis PORTC, 3
+    rjmp test_io_end
+    sbic PORTC, 2
+    rjmp test_io_end
+    sbis PORTC, 1
+    rjmp test_io_end
+    sbic PORTC, 0
+    jmp test_io_end
+    ; rjmp test_io_end
+    sts status, r1
+test_io_end:
     ret
 
 test_skips:

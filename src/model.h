@@ -32,7 +32,7 @@ struct avr_model {
 
     // general model information
     uint8_t pcsize;         // size of the program counter in bytes
-    uint8_t in_out_offset;  // offset when accessing memory-mappped registers with IN/OUT
+    uint8_t io_offset;      // offset when accessing memory-mappped registers with IN/OUT
 
     // memory-mapped register addresses
     uint16_t reg_rampz;

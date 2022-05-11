@@ -94,9 +94,13 @@ void avr_step(struct avr *avr) {
                 else if ((inst_l & 0x88) == 0x08) inst_fmul(avr, inst);
                 else if ((inst_l & 0x88) == 0x80) inst_fmuls(avr, inst);
                 else if ((inst_l & 0x88) == 0x88) inst_fmulsu(avr, inst);
-                else avr->error = CPU_INVALID_INSTRUCTION;
+                else {
+                    avr->error = CPU_INVALID_INSTRUCTION;
+                    avr->status = CPU_STATUS_CRASHED;
+                }
             } else {
                 avr->error = CPU_INVALID_INSTRUCTION;
+                avr->status = CPU_STATUS_CRASHED;
             }
         }
         // instructions of the form 000x-xxxx-xxxx-xxxx
@@ -109,7 +113,10 @@ void avr_step(struct avr *avr) {
                 else if ((inst_h & 0xfc) == 0x18) inst_sub(avr, inst);
                 else if ((inst_h & 0xfc) == 0x1c) inst_adc(avr, inst);
                 else if ((inst_h & 0xfc) == 0x0c) inst_add(avr, inst);
-                else avr->error = CPU_INVALID_INSTRUCTION;
+                else {
+                    avr->error = CPU_INVALID_INSTRUCTION;
+                    avr->status = CPU_STATUS_CRASHED;
+                }
             } else {
                 if ((inst_h & 0xfc) == 0x20) inst_and(avr, inst);
                 else if ((inst_h & 0xfc) == 0x24) inst_eor(avr, inst);
@@ -141,7 +148,10 @@ void avr_step(struct avr *avr) {
                 else if ((inst_l & 0x0c) == 0x00) inst_stz(avr, inst);
                 else if ((inst_l & 0x0f) == 0x0f) inst_push(avr, inst);
                 else if ((inst_l & 0x0f) >= 0xc) inst_stx(avr, inst);
-                else avr->error = CPU_INVALID_INSTRUCTION;
+                else {
+                    avr->error = CPU_INVALID_INSTRUCTION;
+                    avr->status = CPU_STATUS_CRASHED;
+                }
             } else {
                 if ((inst_l & 0x0f) == 0x00) inst_lds(avr, inst);
                 else if ((inst_l & 0x0c) == 0x08) inst_ldy(avr, inst);
@@ -150,7 +160,10 @@ void avr_step(struct avr *avr) {
                 else if ((inst_l & 0x0f) >= 0x0c) inst_ldx(avr, inst);
                 else if ((inst_l & 0x0e) == 0x04) inst_lpm(avr, inst);
                 else if ((inst_l & 0x0e) == 0x06) inst_elpm(avr, inst);
-                else avr->error = CPU_UNSUPPORTED_INSTRUCTION; // xch, las, lac, lat
+                else { // xch, las, lac, lat
+                    avr->error = CPU_INVALID_INSTRUCTION;
+                    avr->status = CPU_STATUS_CRASHED;
+                }
             }
         }
         // instructions of the form 1001-010x-xxxx-xxxx
@@ -165,7 +178,10 @@ void avr_step(struct avr *avr) {
                 else if ((inst_l & 0x0f) == 0x05) inst_asr(avr, inst);
                 else if ((inst_l & 0x0f) == 0x06) inst_lsr(avr, inst);
                 else if ((inst_l & 0x0f) == 0x07) inst_ror(avr, inst);
-                else avr->error = CPU_UNSUPPORTED_INSTRUCTION;
+                else {
+                    avr->error = CPU_INVALID_INSTRUCTION;
+                    avr->status = CPU_STATUS_CRASHED;
+                }
             }
             // instructions of the form 1001-0101-xxxx-1000
             // ret, reti, sleep, break, wdr, lpm (r0), elpm (r0), spm
@@ -176,7 +192,10 @@ void avr_step(struct avr *avr) {
                 else if (inst_l == 0xc8) inst_lpm(avr, inst);
                 else if (inst_l == 0xd8) inst_elpm(avr, inst);
                 else if ((inst_l & 0xe8) == 0xe8) inst_spm(avr, inst);
-                else avr->error = CPU_UNSUPPORTED_INSTRUCTION; // including break, wdr
+                else { // including break, wdr
+                    avr->error = CPU_INVALID_INSTRUCTION;
+                    avr->status = CPU_STATUS_CRASHED;
+                }
             }
             // instructions of the form 1001-010x-xxxx-xxxx
             // se*, cl*, eijmp, icall, dec, des, jmp, call
@@ -192,7 +211,10 @@ void avr_step(struct avr *avr) {
             } else if ((inst_l & 0x0f) == 0x0a) inst_dec(avr, inst);
             else if ((inst_l & 0x0e) == 0x0c) inst_jmp(avr, inst);
             else if ((inst_l & 0x0e) == 0x0e) inst_call(avr, inst);
-            else avr->error = CPU_UNSUPPORTED_INSTRUCTION;
+            else {
+                avr->error = CPU_INVALID_INSTRUCTION;
+                avr->status = CPU_STATUS_CRASHED;
+            }
         }
         // instructions of the form 1001-xxxx-xxxx-xxxx
         // adiw, sbiw, cbi, sbi, sbic, sbis, mul
@@ -216,6 +238,9 @@ void avr_step(struct avr *avr) {
         else if ((inst_h & 0xfe) == 0xfa) inst_bst(avr, inst);
         else if ((inst_h & 0xfe) == 0xfe) inst_sbrs(avr, inst);
         else if ((inst_h & 0xfe) == 0xfc) inst_sbrc(avr, inst);
-        else avr->error = CPU_UNSUPPORTED_INSTRUCTION;
+        else {
+            avr->error = CPU_INVALID_INSTRUCTION;
+            avr->status = CPU_STATUS_CRASHED;
+        }
     }
 }
