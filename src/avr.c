@@ -181,8 +181,8 @@ void avr_step(struct avr *avr) {
             // instructions of the form 1001-010x-xxxx-xxxx
             // se*, cl*, eijmp, icall, dec, des, jmp, call
             else if ((inst_h & 0x01) == 0x00 && (inst_l & 0x0f) == 0x08) {
-                if (inst_l & 0x80) inst_bset(avr, inst);
-                else inst_bclr(avr, inst);
+                if (inst_l & 0x80) inst_bclr(avr, inst);
+                else inst_bset(avr, inst);
             } else if (inst_l == 0x09) {
                 if (inst_h & 0x01) inst_icall(avr, inst);
                 else inst_ijmp(avr, inst);

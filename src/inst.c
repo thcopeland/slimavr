@@ -1,14 +1,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include "inst.h"
+#include "avrdefs.h"
 #include "opt.h"
-
-#define AVR_REG(n) (n)
-#define AVR_REG_R0 0
-#define AVR_REG_R1 1
-#define AVR_REG_X 26
-#define AVR_REG_Y 28
-#define AVR_REG_Z 30
 
 static int is_32bit_inst(uint16_t inst) {
     return (inst & 0xfc0f) == 0x9000 || // lds, sts
@@ -227,8 +221,10 @@ void inst_com(struct avr *avr, uint16_t inst) {
     uint8_t dst = (inst >> 4) & 0x1f,
             val = avr->reg[dst];
     avr->reg[dst] = ~val;
-    LOG("com r%d\n", dst);
-    set_sreg_sub(avr, 255, val, ~val);
+    LOG("com\tr%d\n", dst);
+    set_sreg_logical(avr, ~val);
+    avr->reg[avr->model.reg_status] |= 1;
+    avr->pc += 2;
 }
 
 void inst_neg(struct avr *avr, uint16_t inst) {
@@ -257,8 +253,8 @@ void inst_inc(struct avr *avr, uint16_t inst) {
 
 void inst_in(struct avr *avr, uint16_t inst) {
     uint8_t dst = (inst >> 4) & 0x1f,
-            addr = (((inst >> 4) & 0x30) | (inst & 0xf)) + avr->model.in_out_offset;
-    LOG("in\tr%d, 0x%03x\n", dst, addr - avr->model.in_out_offset);
+            addr = (((inst >> 5) & 0x30) | (inst & 0xf)) + avr->model.in_out_offset;
+    LOG("in\tr%d, 0x%02x\n", dst, addr - avr->model.in_out_offset);
     avr->reg[dst] = avr->reg[addr];
     avr->pc += 2;
 }
@@ -504,17 +500,35 @@ void inst_ret(struct avr *avr, uint16_t inst) {
 }
 
 void inst_reti(struct avr *avr, uint16_t inst) {
-    (void) avr;
     (void) inst;
     LOG("reti\n");
-    avr->pc += 2;
+    avr->reg[avr->model.reg_status] |= AVR_STATUS_I; // enable interrupts
+    sim_return(avr, 3);
+}
+
+static inline void sim_skip(struct avr *avr) {
+    uint16_t next = ((uint16_t) avr->rom[avr->pc+3] << 8) | avr->rom[avr->pc+2];
+
+    if (is_32bit_inst(next)) {
+        avr->pc += 6;
+        avr->progress = 2;
+        avr->status = CPU_STATUS_COMPLETING;
+    } else {
+        avr->pc += 4;
+        avr->progress = 1;
+        avr->status = CPU_STATUS_COMPLETING;
+    }
 }
 
 void inst_cpse(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("cpse\n");
-    avr->pc += 2;
+    uint8_t reg1 = (inst >> 4) & 0x1f,
+            reg2 = ((inst >> 5) & 0x10) | (inst & 0x0f);
+    LOG("cpse\tr%d, r%d\n", reg1, reg2);
+    if (avr->reg[reg1] == avr->reg[reg2]) {
+        sim_skip(avr);
+    } else {
+        avr->pc += 2;
+    }
 }
 
 void inst_cp(struct avr *avr, uint16_t inst) {
@@ -550,31 +564,47 @@ void inst_cpi(struct avr *avr, uint16_t inst) {
 }
 
 void inst_sbrc(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("sbrc\n");
-    avr->pc += 2;
+    uint8_t reg = (inst >> 4) & 0x1f,
+            mask = 1 << (inst & 0x7);
+    LOG("sbrc\tr%d, %d\n", reg, inst & 0x7);
+    if (avr->reg[reg] & mask) {
+        avr->pc += 2;
+    } else {
+        sim_skip(avr);
+    }
 }
 
 void inst_sbrs(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("sbrs\n");
-    avr->pc += 2;
+    uint8_t reg = (inst >> 4) & 0x1f,
+            mask = 1 << (inst & 0x7);
+    LOG("sbrs\tr%d, %d\n", reg, inst & 0x7);
+    if (avr->reg[reg] & mask) {
+        sim_skip(avr);
+    } else {
+        avr->pc += 2;
+    }
 }
 
 void inst_sbic(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("sbic\n");
-    avr->pc += 2;
+    uint8_t reg = (inst >> 3) & 0x1f,
+            mask = 1 << (inst & 0x7);
+    LOG("sbic\t0x%02x, %d\n", reg, inst & 0x7);
+    if (avr->reg[reg+avr->model.in_out_offset] & mask) {
+        avr->pc += 2;
+    } else {
+        sim_skip(avr);
+    }
 }
 
 void inst_sbis(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("sbis\n");
-    avr->pc += 2;
+    uint8_t reg = (inst >> 3) & 0x1f,
+            mask = 1 << (inst & 0x7);
+    LOG("sbis\t0x%02x, %d\n", reg, inst & 0x7);
+    if (avr->reg[reg+avr->model.in_out_offset] & mask) {
+        sim_skip(avr);
+    } else {
+        avr->pc += 2;
+    }
 }
 
 void inst_branch(struct avr *avr, uint16_t inst) {
@@ -798,16 +828,16 @@ void inst_swap(struct avr *avr, uint16_t inst) {
 }
 
 void inst_bset(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("bset\n");
+    uint8_t mask = 1 << ((inst >> 4) & 0x7);
+    avr->reg[avr->model.reg_status] |= mask;
+    LOG("se%c\n", "cznvshti"[(inst>>4) & 0x7]);
     avr->pc += 2;
 }
 
 void inst_bclr(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("bclr\n");
+    uint8_t mask = 1 << ((inst >> 4) & 0x7);
+    avr->reg[avr->model.reg_status] &= ~mask;
+    LOG("cl%c\n", "cznvshti"[(inst>>4) & 0x7]);
     avr->pc += 2;
 }
 
@@ -1126,8 +1156,8 @@ void inst_spm(struct avr *avr, uint16_t inst) {
 
 void inst_out(struct avr *avr, uint16_t inst) {
     uint8_t src = (inst >> 4) & 0x1f,
-            addr = (((inst >> 4) & 0x30) | (inst & 0xf)) + avr->model.in_out_offset;
-    LOG("out\t0x%03x, r%d\n", addr - avr->model.in_out_offset, src);
+            addr = (((inst >> 5) & 0x30) | (inst & 0xf)) + avr->model.in_out_offset;
+    LOG("out\t0x%02x, r%d\n", addr - avr->model.in_out_offset, src);
     avr->reg[addr] = avr->reg[src];
     avr->pc += 2;
 }
