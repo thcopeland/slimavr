@@ -50,6 +50,17 @@ test_all:
     lds r16, status
     cpi r16, 0
     brne stall
+
+    ldi r16, 8
+    sts status, r16
+    rcall test_left_shifts
+    lds r16, status
+    cpi r16, 0
+    brne stall
+
+    ldi r16, 9
+    sts status, r16
+    rcall test_right_shifts
 stall:
     rjmp stall
 
@@ -143,6 +154,24 @@ test_status:
     in r16, SREG
     cpi r16, 0xaa
     brne test_status_end
+    ldi r16, 0x1
+    bst r16, 0
+    in r17, SREG
+    sbrs r17, 6
+    rjmp test_status_end
+    bst r16, 1
+    in r17, SREG
+    sbrc r17, 6
+    rjmp test_status_end
+    clt
+    bld r16, 0
+    cpi r16, 0
+    brne test_status_end
+    set
+    bld r16, 4
+    cpi r16, 16
+    brne test_status_end
+    clt
     sts status, r1
 test_status_end:
     ret
@@ -172,7 +201,6 @@ test_io:
     rjmp test_io_end
     sbic PORTC, 0
     jmp test_io_end
-    ; rjmp test_io_end
     sts status, r1
 test_io_end:
     ret
@@ -214,4 +242,57 @@ test_skips:
     lds r16, status
     sts status, r1
 test_skips_end:
+    ret
+
+test_left_shifts:
+    ldi r16, 0xaa
+    lsl r16
+    in r17, SREG
+    cpi r16, 0x54
+    brne test_left_shifts_end
+    cpi r17, 0xb9
+    brne test_left_shifts_end
+    out SREG, r17
+    rol r16
+    in r17, SREG
+    cpi r16, 0xa9
+    brne test_left_shifts_end
+    cpi r17, 0x8c
+    brne test_left_shifts_end
+    ldi r16, 0xa5
+    swap r16
+    cpi r16, 0x5a
+    brne test_left_shifts_end
+    sts status, r1
+test_left_shifts_end:
+    ret
+
+test_right_shifts:
+    ldi r16, 0x55
+    lsr r16
+    in r17, SREG
+    cpi r16, 0x2a
+    brne test_right_shifts_end
+    cpi r17, 0x99
+    brne test_right_shifts_end
+    out SREG, r17
+    ror r16
+    in r17, SREG
+    cpi r16, 0x95
+    brne test_right_shifts_end
+    cpi r17, 0x8c
+    brne test_right_shifts_end
+    ldi r16, 0xff
+    asr r16
+    in r17, SREG
+    cpi r16, 0xff
+    brne test_right_shifts_end
+    cpi r17, 0x95
+    brne test_right_shifts_end
+    ldi r16, 0x02
+    swap r16
+    cpi r16, 0x20
+    brne test_right_shifts_end
+    sts status, r1
+test_right_shifts_end:
     ret

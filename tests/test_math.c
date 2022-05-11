@@ -9,7 +9,7 @@ void test_arithmetic(void) {
 
 void test_bitwise(void) {
     printf("testing bitwise operations... ");
-    run_test("asm/bitwise.hex", 250, MODEL_ATMEGA1280);
+    run_test("asm/bitwise.hex", 340, MODEL_ATMEGA1280);
 }
 
 void test_multiplication(void) {

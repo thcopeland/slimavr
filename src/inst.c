@@ -53,6 +53,16 @@ static inline void set_sreg_fmul(struct avr *avr, uint16_t val) {
     avr->reg[avr->model.reg_status] = status;
 }
 
+static inline void set_sreg_rshift(struct avr *avr, uint8_t before, uint8_t after) {
+    uint8_t status = avr->reg[avr->model.reg_status] & 0xe0;
+    status |= (before & 0x01);                              // carry
+    status |= (after == 0) << 1;                            // zero
+    status |= (after & 0x80) >> 5;                          // negative
+    status |= ((after >> 4) ^ (before << 3)) & 0x08;        // overflow
+    status |= (((status << 1) ^ status) & 0x08) << 1;       // sign
+    avr->reg[avr->model.reg_status] = status;
+}
+
 void inst_add(struct avr *avr, uint16_t inst) {
     uint8_t dst = (inst >> 4) & 0x1f,
             src = ((inst >> 5) & 0x10) | (inst & 0xf),
@@ -780,45 +790,38 @@ void inst_cbi(struct avr *avr, uint16_t inst) {
     avr->pc += 2;
 }
 
-void inst_lsl(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("lsl\n");
-    avr->pc += 2;
-}
-
 void inst_lsr(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("lsr\n");
-    avr->pc += 2;
-}
-
-void inst_rol(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("rol\n");
+    uint8_t reg = (inst >> 4) & 0x1f,
+            val = avr->reg[reg];
+    avr->reg[reg] = val >> 1;
+    set_sreg_rshift(avr, val, avr->reg[reg]);
+    LOG("lsr\tr%d\n", reg);
     avr->pc += 2;
 }
 
 void inst_ror(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("ror\n");
+    uint8_t reg = (inst >> 4) & 0x1f,
+            val = avr->reg[reg];
+    avr->reg[reg] = (avr->reg[avr->model.reg_status] << 7) | (val >> 1);
+    set_sreg_rshift(avr, val, avr->reg[reg]);
+    LOG("ror\tr%d\n", reg);
     avr->pc += 2;
 }
 
 void inst_asr(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("asr\n");
+    uint8_t reg = (inst >> 4) & 0x1f,
+            val = avr->reg[reg];
+    avr->reg[reg] = (uint8_t) ((int8_t) val >> 1);
+    set_sreg_rshift(avr, val, avr->reg[reg]);
+    LOG("asr\tr%d\n", reg);
     avr->pc += 2;
 }
 
 void inst_swap(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("swap\n");
+    uint8_t reg = (inst >> 4) & 0x1f,
+            val = avr->reg[reg];
+    avr->reg[reg] = (val >> 4) | (val << 4);
+    LOG("swap\tr%d\n", reg);
     avr->pc += 2;
 }
 
@@ -837,16 +840,26 @@ void inst_bclr(struct avr *avr, uint16_t inst) {
 }
 
 void inst_bst(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("bst\n");
+    uint8_t reg = (inst >> 4) & 0x1f,
+            mask = 1 << (inst & 0x7);
+    if (avr->reg[reg] & mask) {
+        avr->reg[avr->model.reg_status] |= 0x40;
+    } else {
+        avr->reg[avr->model.reg_status] &= 0xbf;
+    }
+    LOG("bst\tr%d, %d\n", reg, inst & 0x7);
     avr->pc += 2;
 }
 
 void inst_bld(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("bld\n");
+    uint8_t reg = (inst >> 4) & 0x1f,
+            mask = 1 << (inst & 0x7);
+    if (avr->reg[avr->model.reg_status] & 0x40) {
+        avr->reg[reg] |= mask;
+    } else {
+        avr->reg[reg] &= ~mask;
+    }
+    LOG("bld\tr%d, %d\n", reg, inst & 0x7);
     avr->pc += 2;
 }
 //
