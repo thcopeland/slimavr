@@ -34,6 +34,13 @@ test_all:
     cpi r16, 0
     brne stall
 
+    ldi r16, 5
+    sts status, r16
+    rcall test_stack
+    lds r16, status
+    cpi r16, 0
+    brne stall
+
 stall:
     rjmp stall
 
@@ -163,4 +170,33 @@ test_displacement:
     brne test_displacement_end
     sts status, r1
 test_displacement_end:
+    ret
+
+test_stack:
+    ldi r16, 42
+    push r16
+    ldi r17, 101
+    push r17
+    in XL, SPL
+    in XH, SPH
+    adiw XL, 1
+    ld r18, X+
+    ld r19, X+
+    pop r21
+    pop r20
+    cp r16, r19
+    cpc r17, r18
+    brne test_stack_end
+    cp r16, r20
+    cpc r17, r21
+    brne test_stack_end
+    in r20, SPL
+    push r1
+    in r21, SPL
+    pop r1
+    sub r20, r21
+    cpi r20, 1
+    brne test_stack_end
+    sts status, r1
+test_stack_end:
     ret

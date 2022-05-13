@@ -111,7 +111,6 @@ void inst_spm(struct avr *avr, uint16_t inst);
 void inst_out(struct avr *avr, uint16_t inst);
 void inst_push(struct avr *avr, uint16_t inst);
 void inst_pop(struct avr *avr, uint16_t inst);
-void inst_mcu(struct avr *avr, uint16_t inst);
 void inst_nop(struct avr *avr, uint16_t inst);
 void inst_sleep(struct avr *avr, uint16_t inst);
 void inst_wdr(struct avr *avr, uint16_t inst);

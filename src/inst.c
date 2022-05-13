@@ -64,6 +64,49 @@ static inline void set_sreg_rshift(struct avr *avr, uint8_t before, uint8_t afte
     avr->reg[avr->model.reg_status] = status;
 }
 
+static inline uint16_t get_sp(struct avr *avr) {
+    uint8_t reg = avr->model.reg_stack;
+
+    if (avr->model.ramsize > 256) {
+        return ((uint16_t) avr->reg[reg+1] << 8) | (avr->reg[reg]);
+    } else {
+        return avr->reg[reg];
+    }
+}
+
+static inline void set_sp(struct avr *avr, uint16_t sp) {
+    uint8_t reg = avr->model.reg_stack;
+    if (avr->model.ramsize > 256) {
+        avr->reg[reg+1] = sp >> 8;
+    }
+    avr->reg[reg] = sp;
+}
+
+static void sim_push(struct avr *avr, uint8_t val) {
+    uint16_t sp = get_sp(avr);
+
+    if (sp < avr->model.ramstart+avr->model.ramsize) {
+        avr->mem[sp] = val;
+        set_sp(avr, --sp);
+    } else {
+        avr->error = CPU_INVALID_RAM_ADDRESS;
+        avr->status = CPU_STATUS_CRASHED;
+    }
+}
+
+static uint8_t sim_pop(struct avr *avr) {
+    uint16_t sp = get_sp(avr);
+
+    if (sp < avr->model.ramstart+avr->model.ramsize) {
+        set_sp(avr, ++sp);
+        return avr->mem[sp];
+    } else {
+        avr->error = CPU_INVALID_RAM_ADDRESS;
+        avr->status = CPU_STATUS_CRASHED;
+        return 0;
+    }
+}
+
 void inst_add(struct avr *avr, uint16_t inst) {
     uint8_t dst = (inst >> 4) & 0x1f,
             src = ((inst >> 5) & 0x10) | (inst & 0xf),
@@ -421,26 +464,21 @@ void inst_jmp(struct avr *avr, uint16_t inst) {
 }
 
 static void sim_call(struct avr *avr, uint32_t addr, uint32_t ret, uint8_t duration) {
-    uint16_t sp = ((uint16_t) avr->reg[avr->model.reg_stack+1] << 8) | avr->reg[avr->model.reg_stack];
-    ret >>= 1;
-    avr->mem[sp--] = ret & 0xff;
-    avr->mem[sp--] = (ret >> 8) & 0xff;
+    sim_push(avr, (ret >> 1) & 0xff);
+    sim_push(avr, (ret >> 9) & 0xff);
     if (avr->model.pcsize == 3) {
-        avr->mem[sp--] = (ret >> 16) & 0x3f;
+        sim_push(avr, (ret >> 17) & 0xff);
     }
-    avr->reg[avr->model.reg_stack] = sp & 0xff;
-    avr->reg[avr->model.reg_stack+1] = sp >> 8;
-    avr->pc = addr;
-    if (sp < avr->model.ramstart || sp+avr->model.pcsize >= avr->model.memend) {
-        avr->status = CPU_STATUS_CRASHED;
-        avr->error = CPU_INVALID_STACK_ACCESS;
-    } else if (avr->pc < avr->model.romsize) {
-        avr->progress = duration + (avr->model.pcsize > 2 ? 1 : 0);
-        avr->status = CPU_STATUS_COMPLETING;
-    } else {
-        LOG("PC 0x%06x exceeds program memory\n", avr->pc);
-        avr->status = CPU_STATUS_CRASHED;
-        avr->error = CPU_INVALID_ROM_ADDRESS;
+    if (avr->status == CPU_STATUS_NORMAL) {
+        avr->pc = addr;
+        if (avr->pc < avr->model.romsize) {
+            avr->progress = duration + (avr->model.pcsize > 2 ? 1 : 0);
+            avr->status = CPU_STATUS_COMPLETING;
+        } else {
+            LOG("PC 0x%06x exceeds program memory\n", avr->pc);
+            avr->status = CPU_STATUS_CRASHED;
+            avr->error = CPU_INVALID_ROM_ADDRESS;
+        }
     }
 }
 
@@ -481,26 +519,24 @@ void inst_call(struct avr *avr, uint16_t inst) {
 }
 
 static void sim_return(struct avr *avr, uint8_t duration) {
-    uint16_t sp = ((uint16_t) avr->reg[avr->model.reg_stack+1] << 8) | avr->reg[avr->model.reg_stack];
     uint32_t ret = 0;
     if (avr->model.pcsize == 3) {
-        ret |= ((uint32_t) avr->mem[++sp] << 16);
+        ret |= (uint32_t) sim_pop(avr) << 17;
     }
-    ret |= ((uint32_t) avr->mem[++sp] << 8);
-    ret |= avr->mem[++sp];
-    avr->reg[avr->model.reg_stack] = sp & 0xff;
-    avr->reg[avr->model.reg_stack+1] = sp >> 8;
-    avr->pc = ret << 1;
-    if ((uint32_t) (sp - avr->model.pcsize) < avr->model.ramstart || sp >= avr->model.memend) {
-        avr->status = CPU_STATUS_CRASHED;
-        avr->error = CPU_INVALID_STACK_ACCESS;
-    } else if (avr->pc < avr->model.romsize) {
-        avr->progress = duration + (avr->model.pcsize > 2 ? 1 : 0);
-        avr->status = CPU_STATUS_COMPLETING;
-    } else {
-        LOG("PC 0x%06x exceeds program memory\n", avr->pc);
-        avr->status = CPU_STATUS_CRASHED;
-        avr->error = CPU_INVALID_ROM_ADDRESS;
+    ret |= (uint32_t) sim_pop(avr) << 9;
+    ret |= (uint32_t) sim_pop(avr) << 1;
+
+    if (avr->status == CPU_STATUS_NORMAL) {
+        avr->pc = ret;
+
+        if (avr->pc < avr->model.romsize) {
+            avr->progress = duration + (avr->model.pcsize > 2 ? 1 : 0);
+            avr->status = CPU_STATUS_COMPLETING;
+        } else {
+            LOG("PC 0x%06x exceeds program memory\n", avr->pc);
+            avr->status = CPU_STATUS_CRASHED;
+            avr->error = CPU_INVALID_ROM_ADDRESS;
+        }
     }
 }
 
@@ -1240,50 +1276,46 @@ void inst_out(struct avr *avr, uint16_t inst) {
 }
 
 void inst_push(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("push\n");
-    avr->pc += 2;
+    uint8_t src = (inst >> 4) & 0x1f;
+    LOG("push\tr%d\n", src);
+    sim_push(avr, avr->reg[src]);
+    if (avr->status == CPU_STATUS_NORMAL) {
+        avr->pc += 2;
+    }
 }
 
 void inst_pop(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("pop\n");
-    avr->pc += 2;
-}
-
-void inst_mcu(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("mcu\n");
-    avr->pc += 2;
+    uint8_t dst = (inst >> 4) & 0x1f;
+    LOG("pop\tr%d\n", dst);
+    avr->reg[dst] = sim_pop(avr);
+    if (avr->status == CPU_STATUS_NORMAL) {
+        avr->pc += 2;
+    }
 }
 
 void inst_nop(struct avr *avr, uint16_t inst) {
-    (void) avr;
     (void) inst;
     LOG("nop\n");
     avr->pc += 2;
 }
 
 void inst_sleep(struct avr *avr, uint16_t inst) {
-    (void) avr;
     (void) inst;
     LOG("sleep\n");
+    avr->status = CPU_STATUS_SLEEPING;
     avr->pc += 2;
 }
 
 void inst_wdr(struct avr *avr, uint16_t inst) {
-    (void) avr;
     (void) inst;
     LOG("wdr\n");
-    avr->pc += 2;
+    avr->status = CPU_STATUS_CRASHED;
+    avr->error = CPU_UNSUPPORTED_INSTRUCTION;
 }
 
 void inst_break(struct avr *avr, uint16_t inst) {
-    (void) avr;
     (void) inst;
     LOG("break\n");
-    avr->pc += 2;
+    avr->status = CPU_STATUS_CRASHED;
+    avr->error = CPU_UNSUPPORTED_INSTRUCTION;
 }
