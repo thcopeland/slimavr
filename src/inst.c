@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "inst.h"
+#include "flash.h"
 #include "avrdefs.h"
 #include "opt.h"
 
@@ -1018,8 +1019,10 @@ static void sim_access(struct avr *avr, uint16_t ptr, uint8_t disp, uint8_t reg,
         avr->status = CPU_STATUS_CRASHED;
         return;
     } else {
-        avr->status = CPU_STATUS_COMPLETING;
-        if (addr >= avr->model.ramstart) avr->progress = 1;
+        if (addr >= avr->model.ramstart) {
+            avr->progress = 1;
+            avr->status = CPU_STATUS_COMPLETING;
+        }
         avr->pc += 2;
     }
 
@@ -1145,24 +1148,85 @@ void inst_sts(struct avr *avr, uint16_t inst) {
 }
 
 void inst_lpm(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("lpm\n");
-    avr->pc += 2;
+    uint8_t dst = (inst >> 4) & 0x1f;
+    uint16_t addr = ((uint16_t) avr->reg[AVR_REG_Z+1] << 8) | avr->reg[AVR_REG_Z];
+    LOG("lpm\tr%d, Z%s\n", dst, inst & 1 ? "+" : "");
+    if (addr >= avr->model.romsize) {
+        avr->error = CPU_INVALID_ROM_ADDRESS;
+        avr->status = CPU_STATUS_CRASHED;
+    } else {
+        avr->reg[dst] = avr->rom[addr];
+        // post-increment
+        if (inst & 1) {
+            addr++;
+            avr->reg[AVR_REG_Z+1] = addr >> 8;
+            avr->reg[AVR_REG_Z] = addr & 0xff;
+        }
+        avr->pc += 2;
+        avr->progress = 2;
+        avr->status = CPU_STATUS_COMPLETING;
+    }
 }
 
 void inst_elpm(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("elpm\n");
-    avr->pc += 2;
+    uint8_t dst = (inst >> 4) & 0x1f;
+    uint32_t addr = ((uint32_t) avr->reg[avr->model.reg_rampz] << 16) |
+                    ((uint32_t) avr->reg[AVR_REG_Z+1] << 8) |
+                    avr->reg[AVR_REG_Z];
+    LOG("elpm\tr%d, Z%s\n", dst, inst & 1 ? "+" : "");
+    if (addr >= avr->model.romsize) {
+        avr->error = CPU_INVALID_ROM_ADDRESS;
+        avr->status = CPU_STATUS_CRASHED;
+    } else {
+        avr->reg[dst] = avr->rom[addr];
+        // post-increment
+        if (inst & 1) {
+            addr++;
+            avr->reg[avr->model.reg_rampz] = addr >> 16;
+            avr->reg[AVR_REG_Z+1] = addr >> 8;
+            avr->reg[AVR_REG_Z] = addr & 0xff;
+        }
+        avr->pc += 2;
+        avr->progress = 2;
+        avr->status = CPU_STATUS_COMPLETING;
+    }
 }
 
 void inst_spm(struct avr *avr, uint16_t inst) {
-    (void) avr;
-    (void) inst;
-    LOG("spm\n");
-    avr->pc += 2;
+    uint8_t spmcsr = avr->reg[avr->model.reg_spmcsr] & 0x3f;
+    uint32_t addr = ((uint32_t) avr->reg[AVR_REG_Z+1] << 8) | avr->reg[AVR_REG_Z];
+    if (avr->model.romsize > 0xffff) {
+        addr |= (uint32_t) avr->reg[avr->model.reg_rampz] << 16;
+    }
+    LOG("spm%s\n", inst & 0x10 ? "\tZ+" : "");
+    if (spmcsr == (AVR_SPM_SPMEN|AVR_SPM_PGERS)) {
+        flash_erase_page(avr, addr);
+    } else if (spmcsr == (AVR_SPM_SPMEN|AVR_SPM_PGWRT)) {
+        flash_write_page(avr, addr);
+        // TODO interrupt
+    } else if (spmcsr == (AVR_SPM_SPMEN|AVR_SPM_BLBSET)) {
+        flash_set_blb(avr, avr->reg[AVR_REG_R0]);
+    } else if (spmcsr == AVR_SPM_SPMEN) {
+        flash_write_buff(avr, addr, avr->reg[AVR_REG_R0], avr->reg[AVR_REG_R1]);
+    } else {
+        avr->pc += 2;
+        return;
+    }
+
+    if (avr->status == CPU_STATUS_NORMAL) {
+        if (inst & 0x10) { // post-increment
+            addr += 2;
+            if (avr->model.romsize > 0xffff) {
+                avr->reg[avr->model.reg_rampz] = addr >> 16;
+            }
+            avr->reg[AVR_REG_Z+1] = addr >> 8;
+            avr->reg[AVR_REG_Z] = addr & 0xff;
+        }
+
+        avr->pc += 2;
+        avr->progress = 2;
+        avr->status = CPU_STATUS_COMPLETING;
+    }
 }
 
 void inst_out(struct avr *avr, uint16_t inst) {
@@ -1170,6 +1234,8 @@ void inst_out(struct avr *avr, uint16_t inst) {
             addr = (((inst >> 5) & 0x30) | (inst & 0xf)) + avr->model.io_offset;
     LOG("out\t0x%02x, r%d\n", addr - avr->model.io_offset, src);
     avr->reg[addr] = avr->reg[src];
+    // TODO find some reasonably performant and clean way to handle changing special regs
+    // TODO SPMCSR should have a four-cycle expiration on AVR_SPM_SPMEN
     avr->pc += 2;
 }
 

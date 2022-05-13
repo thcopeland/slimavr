@@ -22,6 +22,8 @@ struct avr {
     uint8_t status;         // processor state
     int8_t progress;        // cycles remaining for multi-cycle instructions
     uint32_t pc;            // program counter
+    uint64_t clock;         // number of cycles
+    uint64_t insts;         // number of instructions
 
     // memory
     uint8_t *mem;
@@ -31,6 +33,9 @@ struct avr {
     uint8_t *reg;           // registers
     uint8_t *ram;           // sram
     uint8_t *eep;           // eeprom
+
+    // flash programming data
+    uint8_t *flash_pgbuff;  // program memory buffer
 };
 
 struct avr *avr_init(struct avr_model model);
