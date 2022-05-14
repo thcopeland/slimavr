@@ -240,6 +240,10 @@ test_skips:
     rjmp test_skips_end
     sbic PORTC, 0
     lds r16, status
+    ldi r16, 42
+    ldi r17, 42
+    cpse r16, r17
+    rjmp test_skips_end
     sts status, r1
 test_skips_end:
     ret

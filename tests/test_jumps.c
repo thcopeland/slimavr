@@ -9,12 +9,12 @@ void test_jmp(void) {
 
 void test_call_2b(void) {
     printf("testing calls (2 byte PC)... ");
-    run_test("asm/call_2b.hex", 120, MODEL_ATMEGA1280);
+    run_test("asm/call_2b.hex", 140, MODEL_ATMEGA1280);
 }
 
 void test_call_3b(void) {
     printf("testing calls (3 byte PC)... ");
-    run_test("asm/call_3b.hex", 180, MODEL_ATMEGA2560);
+    run_test("asm/call_3b.hex", 210, MODEL_ATMEGA2560);
 }
 
 int main(int argc, char **argv) {

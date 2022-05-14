@@ -120,6 +120,7 @@ static inline void avr_exec(struct avr *avr) {
             else if ((inst_h & 0xfc) == 0x18) inst_sub(avr, inst);
             else if ((inst_h & 0xfc) == 0x1c) inst_adc(avr, inst);
             else if ((inst_h & 0xfc) == 0x0c) inst_add(avr, inst);
+            else if ((inst_h & 0xfc) == 0x10) inst_cpse(avr, inst);
             else {
                 avr->error = CPU_INVALID_INSTRUCTION;
                 avr->status = CPU_STATUS_CRASHED;

@@ -10,7 +10,7 @@ test_rjmp_stall:
 test_jmp:
     ldi r31, 2
     sts status, r31
-    rjmp test_ijmp
+    jmp test_ijmp
 test_jmp_stall:
     rjmp test_jmp_stall
 .org 0x400

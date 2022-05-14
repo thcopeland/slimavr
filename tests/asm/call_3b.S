@@ -37,6 +37,12 @@ eicall_ret:
     lds r31, status
     cpi r31, 0
     brne stall
+    ldi r31, 4
+    sts status, r31
+    call test_ret
+    lds r31, status
+    cpi r31, 0
+    brne stall
 stall:
     rjmp stall
 
@@ -136,4 +142,18 @@ test_eicall:
     brne test_eicall_end
     sts status, r1
 test_eicall_end:
+    ret
+
+test_ret:
+    ldi r16, low(test_ret_pass)
+    push r16
+    ldi r16, high(test_ret_pass)
+    push r16
+    ldi r16, byte3(test_ret_pass)
+    push r16
+    ret
+test_ret_fail:
+    ret
+test_ret_pass:
+    sts status, r1
     ret

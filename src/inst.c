@@ -407,27 +407,29 @@ void inst_fmulsu(struct avr *avr, uint16_t inst) {
 }
 
 void inst_rjmp(struct avr *avr, uint16_t inst) {
-    int16_t dpc = (int16_t) (inst << 4) >> 4; // sign extend
-    LOG("rjmp\t%+d\n", 2*(dpc+1));
-    avr->pc += 2*(dpc+1);
-    if (avr->pc < avr->model.romsize) {
+    int16_t dpc = ((int16_t) (inst << 4) >> 3) + 2;
+    uint32_t addr = avr->pc + dpc;
+    LOG("rjmp\t%+d\n", dpc);
+    if (addr < avr->model.romsize) {
+        avr->pc = addr;
         avr->progress = 1;
         avr->status = CPU_STATUS_COMPLETING;
     } else {
-        LOG("PC 0x%06x exceeds program memory\n", avr->pc);
+        LOG("cannot jump to address 0x%06x\n", addr);
         avr->status = CPU_INVALID_ROM_ADDRESS;
     }
 }
 
 void inst_ijmp(struct avr *avr, uint16_t inst) {
     (void) inst;
-    avr->pc = (((uint16_t) avr->reg[AVR_REG_Z+1] << 8) | avr->reg[AVR_REG_Z]) << 1;
-    LOG("ijmp\t0x%06x\n", avr->pc);
-    if (avr->pc < avr->model.romsize) {
+    uint32_t addr = (((uint32_t) avr->reg[AVR_REG_Z+1] << 8) | avr->reg[AVR_REG_Z]) << 1;
+    LOG("ijmp\t0x%06x\n", addr);
+    if (addr < avr->model.romsize) {
+        avr->pc = addr;
         avr->progress = 1;
         avr->status = CPU_STATUS_COMPLETING;
     } else {
-        LOG("PC 0x%06x exceeds program memory\n", avr->pc);
+        LOG("cannot jump to address 0x%06x\n", addr);
         avr->status = CPU_STATUS_CRASHED;
         avr->error = CPU_INVALID_ROM_ADDRESS;
     }
@@ -435,15 +437,16 @@ void inst_ijmp(struct avr *avr, uint16_t inst) {
 
 void inst_eijmp(struct avr *avr, uint16_t inst) {
     (void) inst;
-    avr->pc = (((uint32_t) avr->reg[avr->model.reg_eind] << 16) |
-               ((uint32_t) avr->reg[AVR_REG_Z+1] << 8) |
-                (uint32_t) avr->reg[AVR_REG_Z]) << 1;
-    LOG("eijmp\t0x%06x\n", avr->pc);
-    if (avr->pc < avr->model.romsize) {
+    uint32_t addr = (((uint32_t) avr->reg[avr->model.reg_eind] << 16) |
+                     ((uint32_t) avr->reg[AVR_REG_Z+1] << 8) |
+                     (uint32_t) avr->reg[AVR_REG_Z]) << 1;
+    LOG("eijmp\t0x%06x\n", addr);
+    if (addr < avr->model.romsize) {
+        avr->pc = addr;
         avr->progress = 1;
         avr->status = CPU_STATUS_COMPLETING;
     } else {
-        LOG("PC 0x%06x exceeds program memory\n", avr->pc);
+        LOG("cannot jump to address 0x%06x\n", addr);
         avr->status = CPU_STATUS_CRASHED;
         avr->error = CPU_INVALID_ROM_ADDRESS;
     }
@@ -451,13 +454,14 @@ void inst_eijmp(struct avr *avr, uint16_t inst) {
 
 void inst_jmp(struct avr *avr, uint16_t inst) {
     uint16_t inst2 = ((uint16_t) avr->rom[avr->pc+3] << 8) | avr->rom[avr->pc+2];
-    avr->pc = ((((inst >> 3) & 0x3e) | (inst & 1)) << 16) | inst2;
-    LOG("jmp\t0x%06x\n", avr->pc);
-    if (avr->pc < avr->model.romsize) {
+    uint32_t addr = ((((inst & 0x01f0) >> 3) | (inst & 1)) << 17) | (inst2 << 1);
+    LOG("jmp\t0x%06x\n", addr);
+    if (addr < avr->model.romsize) {
+        avr->pc = addr;
         avr->progress = 1;
         avr->status = CPU_STATUS_COMPLETING;
     } else {
-        LOG("PC 0x%06x exceeds program memory\n", avr->pc);
+        LOG("cannot jump to address 0x%06x\n", addr);
         avr->status = CPU_STATUS_CRASHED;
         avr->error = CPU_INVALID_ROM_ADDRESS;
     }
@@ -470,12 +474,12 @@ static void sim_call(struct avr *avr, uint32_t addr, uint32_t ret, uint8_t durat
         sim_push(avr, (ret >> 17) & 0xff);
     }
     if (avr->status == CPU_STATUS_NORMAL) {
-        avr->pc = addr;
-        if (avr->pc < avr->model.romsize) {
+        if (addr < avr->model.romsize) {
+            avr->pc = addr;
             avr->progress = duration + (avr->model.pcsize > 2 ? 1 : 0);
             avr->status = CPU_STATUS_COMPLETING;
         } else {
-            LOG("PC 0x%06x exceeds program memory\n", avr->pc);
+            LOG("call address 0x%06x exceeds program memory\n", addr);
             avr->status = CPU_STATUS_CRASHED;
             avr->error = CPU_INVALID_ROM_ADDRESS;
         }
@@ -527,13 +531,12 @@ static void sim_return(struct avr *avr, uint8_t duration) {
     ret |= (uint32_t) sim_pop(avr) << 1;
 
     if (avr->status == CPU_STATUS_NORMAL) {
-        avr->pc = ret;
-
-        if (avr->pc < avr->model.romsize) {
+        if (ret < avr->model.romsize) {
+            avr->pc = ret;
             avr->progress = duration + (avr->model.pcsize > 2 ? 1 : 0);
             avr->status = CPU_STATUS_COMPLETING;
         } else {
-            LOG("PC 0x%06x exceeds program memory\n", avr->pc);
+            LOG("return address 0x%06x exceeds program memory\n", ret);
             avr->status = CPU_STATUS_CRASHED;
             avr->error = CPU_INVALID_ROM_ADDRESS;
         }
