@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "inst.h"
+#include "utils.h"
 #include "flash.h"
 #include "avrdefs.h"
 #include "opt.h"
@@ -62,49 +63,6 @@ static inline void set_sreg_rshift(struct avr *avr, uint8_t before, uint8_t afte
     status |= ((after >> 4) ^ (before << 3)) & 0x08;        // overflow
     status |= (((status << 1) ^ status) & 0x08) << 1;       // sign
     avr->reg[avr->model.reg_status] = status;
-}
-
-static inline uint16_t get_sp(struct avr *avr) {
-    uint8_t reg = avr->model.reg_stack;
-
-    if (avr->model.ramsize > 256) {
-        return ((uint16_t) avr->reg[reg+1] << 8) | (avr->reg[reg]);
-    } else {
-        return avr->reg[reg];
-    }
-}
-
-static inline void set_sp(struct avr *avr, uint16_t sp) {
-    uint8_t reg = avr->model.reg_stack;
-    if (avr->model.ramsize > 256) {
-        avr->reg[reg+1] = sp >> 8;
-    }
-    avr->reg[reg] = sp;
-}
-
-static void sim_push(struct avr *avr, uint8_t val) {
-    uint16_t sp = get_sp(avr);
-
-    if (sp < avr->model.ramstart+avr->model.ramsize) {
-        avr->mem[sp] = val;
-        set_sp(avr, --sp);
-    } else {
-        avr->error = CPU_INVALID_RAM_ADDRESS;
-        avr->status = CPU_STATUS_CRASHED;
-    }
-}
-
-static uint8_t sim_pop(struct avr *avr) {
-    uint16_t sp = get_sp(avr);
-
-    if (sp < avr->model.ramstart+avr->model.ramsize) {
-        set_sp(avr, ++sp);
-        return avr->mem[sp];
-    } else {
-        avr->error = CPU_INVALID_RAM_ADDRESS;
-        avr->status = CPU_STATUS_CRASHED;
-        return 0;
-    }
 }
 
 void inst_add(struct avr *avr, uint16_t inst) {
@@ -458,7 +416,7 @@ void inst_jmp(struct avr *avr, uint16_t inst) {
     LOG("jmp\t0x%06x\n", addr);
     if (addr < avr->model.romsize) {
         avr->pc = addr;
-        avr->progress = 1;
+        avr->progress = 2;
         avr->status = CPU_STATUS_COMPLETING;
     } else {
         LOG("cannot jump to address 0x%06x\n", addr);

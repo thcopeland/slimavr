@@ -12,8 +12,14 @@ void run_test(char *fname, long duration, struct avr_model model) {
                 break;
             }
         }
-        if (avr->mem[avr->model.ramstart+0x42] != 0) {
-            printf("fail (%d)\n", avr->mem[avr->model.ramstart+0x42]);
+
+        printf("r16 = %d\n", avr->reg[16]);
+        printf("r17 = %d\n", avr->reg[17]);
+        printf("r18 = %d\n", avr->reg[18]);
+        printf("r20 = %d\n", avr->reg[20]);
+
+        if (avr->ram[0x42] != 0) {
+            printf("fail (%d)\n", avr->ram[0x42]);
         } else {
             printf("pass\n");
         }

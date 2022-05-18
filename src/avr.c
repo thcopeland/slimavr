@@ -3,6 +3,7 @@
 #include <string.h>
 #include "model.h"
 #include "inst.h"
+#include "interrupt.h"
 #include "opt.h"
 #include "avr.h"
 
@@ -28,7 +29,9 @@ static void alloc_avr_memory(struct avr *avr) {
     }
 
     avr->mem = malloc(avr->model.memend + unmapped);
-    if (avr->mem != NULL) {
+    if (avr->mem == NULL) {
+        return;
+    } else {
         // set up each segment
         avr->reg = avr->mem;
         avr->ram = avr->mem + avr->model.ramstart;
@@ -41,6 +44,15 @@ static void alloc_avr_memory(struct avr *avr) {
     if (avr->flash_pgbuff == NULL) {
         free(avr->mem);
         avr->mem = NULL;
+        return;
+    }
+
+    avr->timer_data = calloc(sizeof(avr->timer_data[0])*avr->model.timer_count, 1);
+    if (avr->timer_data == NULL) {
+        free(avr->mem);
+        free(avr->flash_pgbuff);
+        avr->mem = NULL;
+        return;
     }
 }
 
@@ -74,12 +86,17 @@ void avr_free(struct avr *avr) {
     if (avr) {
         free(avr->mem);
         free(avr->flash_pgbuff);
+        free(avr->timer_data);
         free(avr);
     }
 }
 
 static inline void avr_update(struct avr *avr) {
     avr->clock++;
+
+    avr_update_timers(avr);
+
+    avr_check_interrupts(avr);
 }
 
 static inline void avr_exec(struct avr *avr) {

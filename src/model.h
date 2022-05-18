@@ -23,6 +23,7 @@ struct avr_model {
     // general model information
     uint8_t pcsize;             // size of the program counter in bytes
     uint8_t io_offset;          // offset when accessing memory-mappped registers with IN/OUT
+    uint8_t interrupt_time;     // how long an interrupt take to occur
     uint64_t flags;             // special behavior flags
     uint16_t eep_pgsize;        // eeprom page size in bytes
     uint16_t flash_pgsize;      // flash page size in bytes

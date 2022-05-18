@@ -24,7 +24,7 @@ struct avr {
     uint32_t pc;                // program counter
     uint64_t clock;             // number of cycles
     uint64_t insts;             // number of instructions
-    uint8_t tmps[4];            // temporary registers for atomic 16-bit writes
+    uint8_t tmps[16];           // internal temporary registers
 
     // memory
     uint8_t *mem;
@@ -34,6 +34,8 @@ struct avr {
     uint8_t *reg;               // registers
     uint8_t *ram;               // sram
     uint8_t *eep;               // eeprom
+
+    struct avr_timerstate *timer_data;  // internal timer state
 
     uint8_t *flash_pgbuff;      // program memory buffer
 };
