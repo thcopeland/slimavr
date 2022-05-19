@@ -1,47 +1,18 @@
 #include "timer.h"
 #include "avr.h"
 
-enum mode {
-    RESERVED,               // do nothing
-    NORMAL,                 // count from 0 to MAX
-    CLEAR_ON_COMPARE_ICR,   // count to ICNn
-    CLEAR_ON_COMPARE_OCRA,  // count to OCRnA
-
-    // count from 0 to some value, setting/clearing/toggling the OCnx pin when
-    // a compare match occurs, then clearing/setting at TOP or BOTTOM
-    FAST_PWM_8BIT,          // reset at 0xff
-    FAST_PWM_9BIT,          // reset at 0x1ff
-    FAST_PWM_10BIT,         // reset at 0x3ff
-    FAST_PWM_ICR,           // reset at ICRn
-    FAST_PWM_OCRA,          // reset at OCRnA
-
-    // count from 0 to some value, setting/clearing the OCnx pin when a compare
-    // match occurs, then count down to 0, clearing/setting the OCnx pin. the OCRnx
-    // registers are double buffered and updated at TOP.
-    PHASE_PWM_8BIT,         // start counting down at 0xff
-    PHASE_PWM_9BIT,         // start counting down at 0x1ff
-    PHASE_PWM_10BIT,        // start counting down at 0x3ff
-    PHASE_PWM_ICR,          // start counting down at ICRn
-    PHASE_PWM_OCRA,         // start counting down at OCRnA
-
-    // identical to phase correct PWM except that OCRnx registers are updated at
-    // BOTTOM
-    PHASE_FREQ_PWM_ICR,     // start counting down at ICRn
-    PHASE_FREQ_PWM_OCRA,    // start counting down at OCRnA
-};
-
 static void sync_ocr_regs(struct avr *avr, const struct avr_timer *tmr, uint8_t i) {
-    avr->reg[tmr->reg_ocra] = avr->timer_data[i].ocra_buff;
-    avr->reg[tmr->reg_ocra+1] = avr->timer_data[i].ocra_buff >> 8;
+    avr->reg[tmr->reg_ocra] = avr->timer_data[i].ocral_buff;
+    avr->reg[tmr->reg_ocra+1] = avr->timer_data[i].ocrah_buff;
 
     // TODO are there ever few than 2 comparators?
     if (tmr->comparators > 1) {
-        avr->reg[tmr->reg_ocrb] = avr->timer_data[i].ocrb_buff;
-        avr->reg[tmr->reg_ocrb+1] = avr->timer_data[i].ocrb_buff >> 8;
+        avr->reg[tmr->reg_ocrb] = avr->timer_data[i].ocrbl_buff;
+        avr->reg[tmr->reg_ocrb+1] = avr->timer_data[i].ocrbh_buff;
 
         if (tmr->comparators > 2) {
-            avr->reg[tmr->reg_ocrc] = avr->timer_data[i].ocrc_buff;
-            avr->reg[tmr->reg_ocrc+1] = avr->timer_data[i].ocrc_buff >> 8;
+            avr->reg[tmr->reg_ocrc] = avr->timer_data[i].ocrcl_buff;
+            avr->reg[tmr->reg_ocrc+1] = avr->timer_data[i].ocrch_buff;
         }
     }
 }
@@ -56,24 +27,25 @@ static inline uint16_t get_timer_reg(struct avr *avr, const struct avr_timer *tm
     return val;
 }
 
+// must match avr_timer_cs order
+static const uint16_t prescale_mask_table[] = {
+    0, 0x000, 0x001, 0x003, 0x007, 0x00f, 0x01f, 0x03f, 0x07f, 0xff, 0x1ff, 0x3ff, 0, 0
+};
 
-static void timer_tick(struct avr *avr, const struct avr_timer *tmr, uint8_t i, enum mode wgm) {
+static void timer_tick(struct avr *avr, const struct avr_timer *tmr, uint8_t i, enum avr_timer_wgm wgm, enum avr_timer_cs cs) {
     uint16_t top, clk = get_timer_reg(avr, tmr, tmr->reg_tcnt);
-    uint16_t clock_source = tmr->clock_src[avr->reg[tmr->reg_tccrb] & 0x7];
 
-    if (clock_source == 0 || (clock_source & 0x8000)) {
-        // disabled or external clock source
-        return;
+    if (cs == CS_DISABLED || cs == CS_FALLING || cs == CS_RISING) {
+        return; // disabled or external clock source
     } else {
-        uint16_t prescale = clock_source & 0x0fff;
-        (void) prescale;
-        // TODO: prescaled value
+        uint16_t mask = prescale_mask_table[cs];
+        if (((++avr->timer_data[i].prescale_clock) & mask) != 0) return;
     }
 
     switch (wgm) {
-        case RESERVED:
+        case WGM_RESERVED:
             return;
-        case NORMAL:
+        case WGM_NORMAL:
             sync_ocr_regs(avr, tmr, i);
             top = (1 << tmr->resolution) - 1;
             if (clk == top && avr->reg[tmr->reg_timsk] & tmr->msk_toie) {
@@ -90,48 +62,48 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, uint8_t i, 
             }
             clk = (clk+1) & top;
             break;
-        case CLEAR_ON_COMPARE_ICR:
+        case WGM_CLEAR_ON_COMPARE_ICR:
             sync_ocr_regs(avr, tmr, i);
             top = get_timer_reg(avr, tmr, tmr->reg_icr);
             break;
-        case CLEAR_ON_COMPARE_OCRA:
+        case WGM_CLEAR_ON_COMPARE_OCRA:
             sync_ocr_regs(avr, tmr, i);
             top = get_timer_reg(avr, tmr, tmr->reg_ocra);
             break;
-        case FAST_PWM_8BIT:
+        case WGM_FAST_PWM_8BIT:
             top = 0xff;
             break;
-        case FAST_PWM_9BIT:
+        case WGM_FAST_PWM_9BIT:
             top = 0x1ff;
             break;
-        case FAST_PWM_10BIT:
+        case WGM_FAST_PWM_10BIT:
             top = 0x3ff;
             break;
-        case FAST_PWM_ICR:
+        case WGM_FAST_PWM_ICR:
             top = get_timer_reg(avr, tmr, tmr->reg_icr);
             break;
-        case FAST_PWM_OCRA:
+        case WGM_FAST_PWM_OCRA:
             top = get_timer_reg(avr, tmr, tmr->reg_ocra);
             break;
-        case PHASE_PWM_8BIT:
+        case WGM_PHASE_PWM_8BIT:
             top = 0xff;
             break;
-        case PHASE_PWM_9BIT:
+        case WGM_PHASE_PWM_9BIT:
             top = 0x1ff;
             break;
-        case PHASE_PWM_10BIT:
+        case WGM_PHASE_PWM_10BIT:
             top = 0x3ff;
             break;
-        case PHASE_PWM_ICR:
+        case WGM_PHASE_PWM_ICR:
             top = get_timer_reg(avr, tmr, tmr->reg_icr);
             break;
-        case PHASE_PWM_OCRA:
+        case WGM_PHASE_PWM_OCRA:
             top = get_timer_reg(avr, tmr, tmr->reg_ocra);
             break;
-        case PHASE_FREQ_PWM_ICR:
+        case WGM_PHASE_FREQ_PWM_ICR:
             top = get_timer_reg(avr, tmr, tmr->reg_icr);
             break;
-        case PHASE_FREQ_PWM_OCRA:
+        case WGM_PHASE_FREQ_PWM_OCRA:
             top = get_timer_reg(avr, tmr, tmr->reg_ocra);
             break;
     }
@@ -143,29 +115,23 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, uint8_t i, 
     }
 }
 
-static const enum mode standard_modes[] = {
-    NORMAL, PHASE_PWM_8BIT, CLEAR_ON_COMPARE_OCRA, FAST_PWM_8BIT, RESERVED, PHASE_PWM_OCRA, RESERVED, FAST_PWM_OCRA
-};
-
-static const enum mode reduced_modes[] = {
-    NORMAL, PHASE_PWM_8BIT, PHASE_PWM_9BIT, PHASE_PWM_10BIT, CLEAR_ON_COMPARE_OCRA, FAST_PWM_8BIT, FAST_PWM_9BIT, FAST_PWM_10BIT, PHASE_FREQ_PWM_ICR, PHASE_FREQ_PWM_OCRA, PHASE_PWM_ICR, PHASE_PWM_OCRA, CLEAR_ON_COMPARE_ICR, RESERVED, FAST_PWM_ICR, FAST_PWM_OCRA
-};
-
 void avr_update_timers(struct avr *avr) {
     for (int i = 0; i < avr->model.timer_count; i++) {
-        int lookup;
         const struct avr_timer *tmr = avr->model.timers+i;
+        uint8_t wgmidx, csidx;
         // TODO check sleep
         switch (tmr->type) {
             case TIMER_STANDARD:
-                lookup = ((avr->reg[tmr->reg_tccrb] & 0x18) >> 1) | (avr->reg[tmr->reg_tccra] & 0x3);
-                timer_tick(avr, tmr, i, standard_modes[lookup]);
+                wgmidx = ((avr->reg[tmr->reg_tccrb] & 0x18) >> 1) | (avr->reg[tmr->reg_tccra] & 0x3);
+                csidx = avr->reg[tmr->reg_tccrb] & 0x07;
                 break;
             case TIMER_REDUCED:
-                lookup = ((avr->reg[tmr->reg_tccrb] & 0x8) >> 1) | (avr->reg[tmr->reg_tccra] & 0x3);
-                timer_tick(avr, tmr, i, reduced_modes[lookup]);
+                wgmidx = ((avr->reg[tmr->reg_tccrb] & 0x8) >> 1) | (avr->reg[tmr->reg_tccra] & 0x3);
+                csidx = avr->reg[tmr->reg_tccrb] & 0x07;
                 break;
         }
+
+        timer_tick(avr, tmr, i, tmr->wgm_table[wgmidx], tmr->clock_src_table[csidx]);
     }
 }
 

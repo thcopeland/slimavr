@@ -47,5 +47,35 @@ fail1:
     rjmp fail1
 
 t_prescaled:
-    sts status, r1 ; REMOVE ME
-    rjmp t_prescaled
+    clr r20
+    clr r21
+    ldi r16, 2
+    sts status, r16
+    ldi r16, 0
+    sts TCCR0A+0x20, r16
+    ldi r16, (1 << CS01)
+    sts TCCR0B+0x20, r16
+    sts TCNT0+0x20, r1
+    ldi r16, (1 << TOIE0)
+    sts TIMSK0, r16
+    sei
+wait2:
+    lds r16, TCNT0+0x20
+    inc r20
+    cpi r21, 3
+    brlo wait2
+check2:
+    cli
+    sts TCCR0B+0x20, r1
+    lds r16, TCNT0+0x20
+    cpi r16, 2 ; approximate
+    brne fail2
+    cpi r20, 250
+    brne fail2
+    rjmp t_ctc
+fail2:
+    rjmp fail2
+
+t_ctc:
+    sts status, r1
+    rjmp t_ctc

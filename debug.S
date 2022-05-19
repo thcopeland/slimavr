@@ -134,6 +134,7 @@ status:             .byte 1
     jmp run
 .org OC1Aaddr
     jmp isr_loop
+
 .org OVF0addr
     jmp t_ovf
 
@@ -141,11 +142,6 @@ t_ovf:
     in r0, SREG
     inc r21
     lds r17, TCNT0+0x20
-    in XL, SPL
-    in XH, SPH
-    adiw XL, 3
-    ld r18, X
-    ; x: rjmp x   ; TODO REMOVE ME
     out SREG, r0
     reti
 
@@ -173,19 +169,45 @@ wait1:
     brlo wait1
 check1:
     cli
-    sts TIMSK0, r1
     sts TCCR0B+0x20, r1
     lds r16, TCNT0+0x20
-    cpi r16, 0
-    ; brne fail1
-    cpi r20, 125
-    ; brne fail1
+    cpi r16, 21 ; approximate
+    brne fail1
+    cpi r20, 122 ; approximate
+    brne fail1
     rjmp t_prescaled
-; fail1:
-;     rjmp fail1
+fail1:
+    ; rjmp fail1
 
 t_prescaled:
+    clr r20
+    clr r21
+    ldi r16, 2
+    sts status, r16
+    ldi r16, 0
+    sts TCCR0A+0x20, r16
+    ldi r16, (1 << CS01)
+    sts TCCR0B+0x20, r16
+    sts TCNT0+0x20, r1
+    ldi r16, (1 << TOIE0)
+    sts TIMSK0, r16
+    sei
+wait2:
+    lds r16, TCNT0+0x20
+    inc r20
+    cpi r21, 3
+    brlo wait2
+check2:
+    cli
+    sts TCCR0B+0x20, r1
+    lds r16, TCNT0+0x20
+    cpi r16, 21 ; approximate
+    ; brne fail2
+    cpi r20, 122 ; approximate
+    ; brne fail2
     ; rjmp t_prescaled
+fail2:
+    ; rjmp fail2
 
     write_byte framebuffer, r16
     write_byte framebuffer+DISPLAY_WIDTH*2, r17

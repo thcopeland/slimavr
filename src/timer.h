@@ -3,15 +3,75 @@
 
 #include <stdint.h>
 
+// determine how tccra/tccrb/tccrc are decoded
 enum avr_timer_type {
     TIMER_STANDARD,     // timers 1,3-5 for ATmega 640/1280/1281/2560/2561
     TIMER_REDUCED,      // timer 0,2 for ATmega 640/1280/1281/2560/2561
 };
 
-#define AVR_CS_DISABLED 0x0000
-#define AVR_CS_FALLING 0x8000
-#define AVR_CS_RISING 0x8001
-#define AVR_CS_PRESCALE(val) (1<<val)
+enum avr_timer_wgm {
+    WGM_RESERVED,               // do nothing
+
+    // count from 0 to some value, setting/clearing/toggling the OCnx pin when
+    // a compare match occurs
+    WGM_NORMAL,                 // count from 0 to MAX
+    WGM_CLEAR_ON_COMPARE_ICR,   // count to ICNn
+    WGM_CLEAR_ON_COMPARE_OCRA,  // count to OCRnA
+
+    // count from 0 to some value, setting/clearing/toggling the OCnx pin when
+    // a compare match occurs, then clearing/setting at TOP or BOTTOM
+    WGM_FAST_PWM_8BIT,          // reset at 0xff
+    WGM_FAST_PWM_9BIT,          // reset at 0x1ff
+    WGM_FAST_PWM_10BIT,         // reset at 0x3ff
+    WGM_FAST_PWM_ICR,           // reset at ICRn
+    WGM_FAST_PWM_OCRA,          // reset at OCRnA
+
+    // count from 0 to some value, setting/clearing the OCnx pin when a compare
+    // match occurs, then count down to 0, clearing/setting the OCnx pin. the OCRnx
+    // registers are double buffered and updated at TOP.
+    WGM_PHASE_PWM_8BIT,         // start counting down at 0xff
+    WGM_PHASE_PWM_9BIT,         // start counting down at 0x1ff
+    WGM_PHASE_PWM_10BIT,        // start counting down at 0x3ff
+    WGM_PHASE_PWM_ICR,          // start counting down at ICRn
+    WGM_PHASE_PWM_OCRA,         // start counting down at OCRnA
+
+    // identical to phase correct PWM except that OCRnx registers are updated at
+    // BOTTOM
+    WGM_PHASE_FREQ_PWM_ICR,     // start counting down at ICRn
+    WGM_PHASE_FREQ_PWM_OCRA,    // start counting down at OCRnA
+};
+
+enum avr_timer_cs {
+    CS_DISABLED,    // timer disabled
+    CS_1,           // tick every cycle
+    CS_2,           // tick every other cycle
+    CS_4,           // tick every 4 cycles
+    CS_8,           // tick every 8 cycles
+    CS_16,          // tick every 16 cycles
+    CS_32,          // tick every 32 cycles
+    CS_64,          // tick every 64 cycles
+    CS_128,         // tick every 128 cycles
+    CS_256,         // tick every 256 cycles
+    CS_512,         // tick every 512 cycles
+    CS_1024,        // tick every 1024 cycles
+    CS_FALLING,     // tick on the falling edge of an external signal
+    CS_RISING,      // tick on the rising edge of an external signal
+};
+
+enum avr_timer_com {
+    COM_DISCONNECTED,   // don't change the ouput pin at all
+    COM_TOGGLE,         // toggle the output pin on match
+    COM_CLEAR,          // clear the output pin on match
+    COM_SET,            // set the output pin on match
+
+    // fast PWM only
+    COM_NON_INVERTING,  // clear the output pin on match, then set it at 0
+    COM_INVERTING,      // set the output pin on match, then clear it at 1
+
+    // phase correct PWM only
+    COM_CLEAR_UP_SET_DOWN,  // clear on match when up-counting, set when down-counting
+    COM_SET_UP_CLEAR_DOWN   // set on match when up-counting, clear when down-counting
+};
 
 struct avr_timer {
     // timer information
@@ -19,7 +79,13 @@ struct avr_timer {
     uint8_t resolution;     // number of bits of resolution (8 and 16 supported)
     uint8_t comparators;    // number of comparators (up to 3)
     uint8_t sleep_mask;     // whether to continue during which sleep modes
-    uint16_t clock_src[8];  // clock source array (prescaler, external clock)
+
+    // various configuration tables
+    enum avr_timer_wgm wgm_table[16];           // waveform generation settings
+    enum avr_timer_cs clock_src_table[8];       // clock source array (prescaler, external clock)
+    enum avr_timer_com com_non_pwm_table[4];    // compare output pin settings for non PWM modes
+    enum avr_timer_com com_fast_pwm_table[4];   // compare output pin settings for fast PWM modes
+    enum avr_timer_com com_phase_pwm_table[4];  // compare output pin settings for phase correct PWM modes
 
     // timer control registers
     uint16_t reg_tcnt;      // the timer value register
@@ -61,12 +127,15 @@ struct avr_timer {
 };
 
 struct avr_timerstate {
-    uint16_t ocra_buff;
-    uint16_t ocrb_buff;
-    uint16_t ocrc_buff;
-    uint16_t prescale;
+    uint16_t prescale_clock;
+    uint8_t ocral_buff;
+    uint8_t ocrah_buff;
+    uint8_t ocrbl_buff;
+    uint8_t ocrbh_buff;
+    uint8_t ocrcl_buff;
+    uint8_t ocrch_buff;
     int8_t direction;
-    uint8_t val; // TODO rename
+    uint8_t val; // TODO unused
 };
 
 struct avr;
