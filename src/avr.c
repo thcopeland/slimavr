@@ -47,12 +47,16 @@ static void alloc_avr_memory(struct avr *avr) {
         return;
     }
 
-    avr->timer_data = calloc(sizeof(avr->timer_data[0])*avr->model.timer_count, 1);
+    avr->timer_data = malloc(sizeof(avr->timer_data[0])*avr->model.timer_count);
     if (avr->timer_data == NULL) {
         free(avr->mem);
         free(avr->flash_pgbuff);
         avr->mem = NULL;
         return;
+    } else {
+        for (int i = 0; i < avr->model.timer_count; i++) {
+            timerstate_init(avr->timer_data+i);
+        }
     }
 }
 

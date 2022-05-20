@@ -59,18 +59,21 @@ enum avr_timer_cs {
 };
 
 enum avr_timer_com {
-    COM_DISCONNECTED,   // don't change the ouput pin at all
-    COM_TOGGLE,         // toggle the output pin on match
-    COM_CLEAR,          // clear the output pin on match
-    COM_SET,            // set the output pin on match
+    COM_DISCONNECTED,       // don't change the ouput pin at all
+    COM_TOGGLE,             // toggle the output pin on match
+    COM_CLEAR,              // clear the output pin on match
+    COM_SET,                // set the output pin on match
 
     // fast PWM only
-    COM_NON_INVERTING,  // clear the output pin on match, then set it at 0
-    COM_INVERTING,      // set the output pin on match, then clear it at 1
+    COM_NON_INVERTING,      // clear the output pin on match, then set it at 0
+    COM_INVERTING,          // set the output pin on match, then clear it at 0
 
     // phase correct PWM only
     COM_CLEAR_UP_SET_DOWN,  // clear on match when up-counting, set when down-counting
-    COM_SET_UP_CLEAR_DOWN   // set on match when up-counting, clear when down-counting
+    COM_SET_UP_CLEAR_DOWN,  // set on match when up-counting, clear when down-counting
+
+    // internally used to handle special PWM cases (eg OCRnx == TOP/BOTTOM)
+    COM_SPECIAL             // either 100% high, 100% low, or 50% duty cycle
 };
 
 struct avr_timer {
@@ -106,9 +109,9 @@ struct avr_timer {
     // uint8_t  msk_icp;       // input capture pin (TODO)
     uint16_t reg_icr;       // input capture register (only PWM timing supported)
     uint16_t reg_timsk;     // timer interrupt mask register
-    uint8_t  msk_ocfiea;    // output compare interrupt enabled A
-    uint8_t  msk_ocfieb;    // output compare interrupt enabled B
-    uint8_t  msk_ocfiec;    // output compare interrupt enabled C
+    uint8_t  msk_ociea;     // output compare interrupt enabled A
+    uint8_t  msk_ocieb;     // output compare interrupt enabled B
+    uint8_t  msk_ociec;     // output compare interrupt enabled C
     uint8_t  msk_toie;      // timer overflow interrupt enabled
     uint16_t reg_tifr;      // timer interrupt flag register
     uint8_t  msk_ocfa;      // output compare flag A
@@ -134,11 +137,13 @@ struct avr_timerstate {
     uint8_t ocrbh_buff;
     uint8_t ocrcl_buff;
     uint8_t ocrch_buff;
-    int8_t direction;
+    int8_t delta;
     uint8_t val; // TODO unused
 };
 
 struct avr;
+
+void timerstate_init(struct avr_timerstate *state);
 
 void avr_update_timers(struct avr *avr);
 

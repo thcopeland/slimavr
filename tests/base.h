@@ -17,6 +17,8 @@ void run_test(char *fname, long duration, struct avr_model model) {
         printf("r17 = %d\n", avr->reg[17]);
         printf("r18 = %d\n", avr->reg[18]);
         printf("r20 = %d\n", avr->reg[20]);
+        printf("r21 = %d\n", avr->reg[21]);
+        printf("r22 = %d\n", avr->reg[22]);
 
         if (avr->ram[0x42] != 0) {
             printf("fail (%d)\n", avr->ram[0x42]);

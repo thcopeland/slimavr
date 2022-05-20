@@ -131,12 +131,20 @@ status:             .byte 1
 
 .cseg
 .org 0x0000
-    jmp run
+    jmp main
 .org OC1Aaddr
     jmp isr_loop
-
+.org OC0Baddr
+    jmp t_ocb
 .org OVF0addr
     jmp t_ovf
+
+t_ocb:
+    in r0, SREG
+    inc r22
+    lds r17, TCNT0+0x20
+    out SREG, r0
+    reti
 
 t_ovf:
     in r0, SREG
@@ -145,7 +153,7 @@ t_ovf:
     out SREG, r0
     reti
 
-run:
+main:
     clr r1
     clr r20
     clr r21
@@ -201,18 +209,58 @@ check2:
     cli
     sts TCCR0B+0x20, r1
     lds r16, TCNT0+0x20
-    cpi r16, 21 ; approximate
-    ; brne fail2
-    cpi r20, 122 ; approximate
-    ; brne fail2
-    ; rjmp t_prescaled
+    cpi r16, 2 ; approximate
+    brne fail2
+    cpi r20, 250
+    brne fail2
+    rjmp t_ctc
 fail2:
     ; rjmp fail2
 
+t_ctc:
+    clr r20
+    clr r21
+    clr r22
+    ldi r16, 3
+    sts status, r16
+    ldi r16, 0xff
+    sts TIFR0+0x20, r16
+    ldi r16, 64
+    ldi r17, 60
+    ldi r18, (1 << TOIE0) | (1 << OCIE0B)
+    ldi r19, (1 << WGM01)
+    ldi r20, (1 << CS00)
+    sts TCNT0+0x20, r1
+    sts OCR0A+0x20, r16
+    sts OCR0B+0x20, r17
+    sts TIMSK0, r18
+    sts TCCR0A+0x20, r19
+    sts TCCR0B+0x20, r20
+    sei
+wait3:
+    lds r16, TCNT0+0x20
+    inc r20
+    cpi r22, 5
+    brlo wait3
+check3:
+    cli
+    sts TCCR0B+0x20, r1
+    lds r16, TCNT0+0x20
+    ; cpi r16, 2 ; approximate
+    ; brne fail3
+    ; cpi r20, 250
+    ; brne fail3
+    ; rjmp t_ctc
+; stall:
+;     rjmp stall
+; fail3:
+;     rjmp fail3
+
+
     write_byte framebuffer, r16
-    write_byte framebuffer+DISPLAY_WIDTH*2, r17
-    write_byte framebuffer+DISPLAY_WIDTH*4, r18
-    write_byte framebuffer+DISPLAY_WIDTH*6, r20
+    ; write_byte framebuffer+DISPLAY_WIDTH*2, r17
+    write_byte framebuffer+DISPLAY_WIDTH*4, r20
+    ; write_byte framebuffer+DISPLAY_WIDTH*6, r22
 
 
 

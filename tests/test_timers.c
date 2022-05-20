@@ -4,7 +4,7 @@
 
 void test_8bit_timer_simple(void) {
     printf("testing 8 bit timers (part 1)... ");
-    run_test("asm/timer_8bit_simple.hex", 7100, MODEL_ATMEGA1280);
+    run_test("asm/timer_8bit_simple.hex", 7400, MODEL_ATMEGA1280);
 }
 
 // void test_8bit_timer_complex(void) {

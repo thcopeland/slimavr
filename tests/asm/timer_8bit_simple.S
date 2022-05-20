@@ -1,9 +1,17 @@
 .include "m1280def.inc"
 .include "base.inc"
     jmp main
-
+.org OC0Baddr
+    jmp t_ocb
 .org OVF0addr
     jmp t_ovf
+
+t_ocb:
+    in r0, SREG
+    inc r22
+    lds r17, TCNT0+0x20
+    out SREG, r0
+    reti
 
 t_ovf:
     in r0, SREG
@@ -77,5 +85,40 @@ fail2:
     rjmp fail2
 
 t_ctc:
+    clr r20
+    clr r21
+    clr r22
+    ldi r16, 3
+    sts status, r16
+    ldi r16, 0x00 ; TODO: use 0xff once clear
+    sts TIFR0+0x20, r16
+    ldi r16, 64
+    ldi r17, 60
+    ldi r18, (1 << TOIE0) | (1 << OCIE0B)
+    ldi r19, (1 << WGM01)
+    ldi r20, (1 << CS00)
+    sts TCNT0+0x20, r1
+    sts OCR0A+0x20, r16
+    sts OCR0B+0x20, r17
+    sts TIMSK0, r18
+    sts TCCR0A+0x20, r19
+    sts TCCR0B+0x20, r20
+    sei
+wait3:
+    lds r16, TCNT0+0x20
+    inc r20
+    cpi r22, 5
+    brlo wait3
+check3:
+    cli
+    sts TCCR0B+0x20, r1
+    lds r16, TCNT0+0x20
+    cpi r16, 21 ; approximate
+    brne fail3
+    cpi r20, 44 ; approximate
+    brne fail3
     sts status, r1
-    rjmp t_ctc
+stall:
+    rjmp stall
+fail3:
+    rjmp fail3
