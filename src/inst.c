@@ -619,15 +619,13 @@ void inst_branch(struct avr *avr, uint16_t inst) {
     int8_t diff = ((int8_t) (inst >> 2)) >> 1;
     uint8_t val = (inst >> 10) & 0x01,
             chk = (avr->reg[avr->model.reg_status] >> (inst & 0x07)) ^ val;
-    LOG("brch\t%+d on %cSREG[%d] (%d)", diff, val ? '~' : ' ', inst & 0x07, avr->reg[avr->model.reg_status]);
+    LOG("br%s\t%+d\n", (char*[]){"lo", "sh", "eq", "ne", "mi", "pl", "vs", "vc", "lt", "ge", "hs", "hc", "ts", "tc", "ie", "id"}[2*(inst & 0x07)+val], diff);
     if (chk & 1) {
         avr->pc += 2*(diff+1);
         avr->progress = 1;
         avr->status = CPU_STATUS_COMPLETING;
-        LOG(" -> taken\n");
     } else {
         avr->pc += 2;
-        LOG(" -> pass\n");
     }
 }
 
