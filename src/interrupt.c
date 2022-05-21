@@ -11,7 +11,7 @@ int avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
     return 0;
 }
 
-static int schedule_interrupt(struct avr *avr, uint32_t vec) {
+static void schedule_interrupt(struct avr *avr, uint32_t vec) {
     avr->status = CPU_STATUS_INTERRUPTING;
     avr->progress = avr->model.interrupt_time;
     avr->reg[avr->model.reg_status] &= 0x7f;

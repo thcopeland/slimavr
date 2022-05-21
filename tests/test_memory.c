@@ -8,7 +8,7 @@ void test_sram(void) {
 }
 
 void test_flash(void) {
-    printf("testing SRAM... ");
+    printf("testing flash... ");
     run_test("asm/flash.hex", 180, MODEL_ATMEGA1280);
 }
 

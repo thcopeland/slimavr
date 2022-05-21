@@ -4,22 +4,37 @@
 #include <stdint.h>
 #include "model.h"
 
-#define CPU_INVALID_INSTRUCTION 1
-#define CPU_UNSUPPORTED_INSTRUCTION 2
-#define CPU_INVALID_RAM_ADDRESS 3
-#define CPU_INVALID_ROM_ADDRESS 4
-#define CPU_INVALID_STACK_ACCESS 5
+enum avr_error {
+    CPU_INVALID_INSTRUCTION,
+    CPU_UNSUPPORTED_INSTRUCTION,
+    CPU_INVALID_RAM_ADDRESS,
+    CPU_INVALID_ROM_ADDRESS,
+    CPU_INVALID_STACK_ACCESS
+};
 
-#define CPU_STATUS_NORMAL 0
-#define CPU_STATUS_CRASHED 1
-#define CPU_STATUS_COMPLETING 2
-#define CPU_STATUS_SLEEPING 3
-#define CPU_STATUS_INTERRUPTING 4
+enum avr_status {
+    CPU_STATUS_NORMAL,
+    CPU_STATUS_CRASHED,
+    CPU_STATUS_COMPLETING,
+    CPU_STATUS_SLEEPING,
+    CPU_STATUS_INTERRUPTING
+};
+
+enum avr_pending_type {
+    AVR_PENDING_NONE,
+    AVR_PENDING_COPY
+};
+
+struct avr_pending_inst {
+    uint32_t src;
+    uint32_t dst;
+    enum avr_pending_type type;
+};
 
 struct avr {
     struct avr_model model;     // processor model
-    uint8_t error;              // current error, if any
-    uint8_t status;             // processor state
+    enum avr_error error;       // current error, if any
+    enum avr_status status;     // processor state
     int8_t progress;            // cycles remaining for multi-cycle instructions
     uint32_t pc;                // program counter
     uint64_t clock;             // number of cycles
@@ -35,9 +50,10 @@ struct avr {
     uint8_t *ram;               // sram
     uint8_t *eep;               // eeprom
 
-    struct avr_timerstate *timer_data;  // internal timer state
-
-    uint8_t *flash_pgbuff;      // program memory buffer
+    // various internal state
+    struct avr_timerstate *timer_data;
+    struct avr_pending_inst pending_inst;
+    uint8_t *flash_pgbuff;      // used for spm
 };
 
 /*

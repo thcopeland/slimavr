@@ -1,4 +1,4 @@
-.include "m2560def.inc"
+.include "m1280def.inc"
 
 ; VGA timing information for 640x480 @ 60Hz on a 16Mhz processor
 .equ VGA_HORIZONTAL_ACTIVE_PIXELS = 640
@@ -223,7 +223,7 @@ t_ctc:
     clr r22
     ldi r16, 3
     sts status, r16
-    ldi r16, 0xff
+    ldi r16, 0xff ; TODO: use 0xff once clear
     sts TIFR0+0x20, r16
     ldi r16, 64
     ldi r17, 60
@@ -246,23 +246,20 @@ check3:
     cli
     sts TCCR0B+0x20, r1
     lds r16, TCNT0+0x20
-    ; cpi r16, 2 ; approximate
+    ; cpi r16, 22 ; should be 21
     ; brne fail3
-    ; cpi r20, 250
+    ; cpi r20, 44 ; approximate
     ; brne fail3
-    ; rjmp t_ctc
-; stall:
-;     rjmp stall
-; fail3:
-;     rjmp fail3
-
+    ; sts status, r1
+stall:
+    ; rjmp stall
+fail3:
+    ; rjmp fail3
 
     write_byte framebuffer, r16
     ; write_byte framebuffer+DISPLAY_WIDTH*2, r17
     write_byte framebuffer+DISPLAY_WIDTH*4, r20
-    ; write_byte framebuffer+DISPLAY_WIDTH*6, r22
-
-
+    ; write_byte framebuffer+DISPLAY_WIDTH*6, r21
 
 vga:
     ldi r18, 0xFF
@@ -359,4 +356,4 @@ _loop_reset_render_state:
 _loop_end:
     reti
 
-; avra debug.S && avrdude -p atmega2560 -c wiring -P /dev/ttyACM0 -b 115200 -D -U flash:w:debug.S.hex:i
+; avra debug.S && avrdude -p atmega1280 -c wiring -P /dev/ttyACM0 -b 115200 -D -U flash:w:debug.S.hex:i

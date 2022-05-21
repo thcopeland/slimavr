@@ -46,9 +46,9 @@ check1:
     cli
     sts TCCR0B+0x20, r1
     lds r16, TCNT0+0x20
-    cpi r16, 21 ; approximate
+    cpi r16, 21
     brne fail1
-    cpi r20, 122 ; approximate
+    cpi r20, 122 ; should be 123
     brne fail1
     rjmp t_prescaled
 fail1:
@@ -76,9 +76,9 @@ check2:
     cli
     sts TCCR0B+0x20, r1
     lds r16, TCNT0+0x20
-    cpi r16, 2 ; approximate
+    cpi r16, 2
     brne fail2
-    cpi r20, 250
+    cpi r20, 250 ; should be 251
     brne fail2
     rjmp t_ctc
 fail2:
@@ -113,9 +113,9 @@ check3:
     cli
     sts TCCR0B+0x20, r1
     lds r16, TCNT0+0x20
-    cpi r16, 21 ; approximate
+    cpi r16, 21 ; should be 17
     brne fail3
-    cpi r20, 44 ; approximate
+    cpi r20, 44 ; should be 45
     brne fail3
     sts status, r1
 stall:

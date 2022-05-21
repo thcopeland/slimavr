@@ -761,18 +761,28 @@ static void sim_access(struct avr *avr, uint16_t ptr, uint8_t disp, uint8_t reg,
         avr->status = CPU_STATUS_CRASHED;
         return;
     } else {
-        if (addr >= avr->model.ramstart) {
-            avr->progress = 1;
-            avr->status = CPU_STATUS_COMPLETING;
-        }
+        avr->progress = 1;
+        avr->status = CPU_STATUS_COMPLETING;
         avr->pc += 2;
     }
 
     // set or load the value at the address
     if (opts & 0x4) {
-        avr->mem[addr+disp] = avr->reg[reg];
+        if (addr+disp < avr->model.regsize) {
+            avr->pending_inst.type = AVR_PENDING_COPY;
+            avr->pending_inst.dst = addr+disp;
+            avr->pending_inst.src = reg;
+        } else {
+            avr->mem[addr+disp] = avr->reg[reg];
+        }
     } else {
-        avr->reg[reg] = avr->mem[addr+disp];
+        if (addr+disp < avr->model.regsize) {
+            avr->pending_inst.type = AVR_PENDING_COPY;
+            avr->pending_inst.dst = reg;
+            avr->pending_inst.src = addr+disp;
+        } else {
+            avr->reg[reg] = avr->mem[addr+disp];
+        }
     }
 
     // post-increment
@@ -831,7 +841,13 @@ void inst_lds(struct avr *avr, uint16_t inst) {
         avr->error = CPU_INVALID_RAM_ADDRESS;
         avr->status = CPU_STATUS_CRASHED;
     } else {
-        avr->reg[dst] = avr->mem[addr];
+        if (addr < avr->model.regsize) {
+            avr->pending_inst.type = AVR_PENDING_COPY;
+            avr->pending_inst.dst = dst;
+            avr->pending_inst.src = addr;
+        } else {
+            avr->reg[dst] = avr->mem[addr];
+        }
         avr->pc += 4;
         avr->progress = 1;
         avr->status = CPU_STATUS_COMPLETING;
@@ -882,7 +898,13 @@ void inst_sts(struct avr *avr, uint16_t inst) {
         avr->error = CPU_INVALID_RAM_ADDRESS;
         avr->status = CPU_STATUS_CRASHED;
     } else {
-        avr->mem[addr] = avr->reg[src];
+        if (addr < avr->model.regsize) {
+            avr->pending_inst.type = AVR_PENDING_COPY;
+            avr->pending_inst.dst = addr;
+            avr->pending_inst.src = src;
+        } else {
+            avr->mem[addr] = avr->reg[src];
+        }
         avr->pc += 4;
         avr->progress = 1;
         avr->status = CPU_STATUS_COMPLETING;

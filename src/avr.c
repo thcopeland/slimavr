@@ -71,6 +71,7 @@ struct avr *avr_init(struct avr_model model) {
         avr->pc = 0;
         avr->clock = 0;
         avr->insts = 0;
+        avr->pending_inst.type = AVR_PENDING_NONE;
 
         alloc_avr_memory(avr);
 
@@ -284,13 +285,17 @@ void avr_step(struct avr *avr) {
         LOG("*** continuing last instruction (%d) ***\n", avr->progress);
         avr->progress--;
         if (avr->progress <= 0) {
+            if (avr->pending_inst.type == AVR_PENDING_COPY) {
+                avr->mem[avr->pending_inst.dst] = avr->mem[avr->pending_inst.src];
+                avr->pending_inst.type = AVR_PENDING_NONE;
+            }
             avr->status = CPU_STATUS_NORMAL;
         }
         return;
     }
 
     if (avr->status == CPU_STATUS_INTERRUPTING) {
-        LOG("*** interrupting (%d) ***\n", avr->progress);
+        LOG("*** responding to interrupt (%d) ***\n", avr->progress);
         avr->progress--;
         if (avr->progress <= 0) {
             avr->status = CPU_STATUS_NORMAL;
