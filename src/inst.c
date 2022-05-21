@@ -967,7 +967,6 @@ void inst_spm(struct avr *avr, uint16_t inst) {
         flash_erase_page(avr, addr);
     } else if (spmcsr == (AVR_SPM_SPMEN|AVR_SPM_PGWRT)) {
         flash_write_page(avr, addr);
-        // TODO interrupt
     } else if (spmcsr == (AVR_SPM_SPMEN|AVR_SPM_BLBSET)) {
         flash_set_blb(avr, avr->reg[AVR_REG_R0]);
     } else if (spmcsr == AVR_SPM_SPMEN) {

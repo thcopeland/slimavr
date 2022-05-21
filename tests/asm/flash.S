@@ -1,5 +1,12 @@
 .include "m1280def.inc"
 .include "base.inc"
+    jmp test_all
+.org SPMRaddr
+    jmp spm_done
+
+spm_done:
+    ldi r20, 1
+    reti
 
 test_all:
     ldi r16, 1
@@ -76,10 +83,15 @@ test_store:
     .dw 0x95f8 ; spm Z+
     rcall test_store_wait
     clr r1
-    ldi r16, (1<<SPMEN)|(1<<PGWRT)
+    sei
+    ldi r16, (1<<SPMEN)|(1<<PGWRT)|(1<<SPMIE)
     out SPMCSR, r16
+    clr r20
     spm
-    rcall test_store_wait
+_spm_wait:
+    tst r20
+    breq _spm_wait
+
     ldi ZL, low(2*store_data)
     ldi ZH, high(2*store_data)
     lpm r16, Z+
@@ -104,7 +116,7 @@ test_store_wait:
     rjmp test_store_wait
     ret
 
-; .org 0x200
+.org 0x200
 .dw 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 .dw 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 .dw 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -113,8 +125,8 @@ test_store_wait:
 
 store_data: .db 42, 42, 42, 42
 
-; .org 0x800
+.org 0x800
 near_data: .db 42, 24
 
-; .org 0xd00
+.org 0xd00
 far_data: .db 24, 42

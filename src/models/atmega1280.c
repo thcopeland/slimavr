@@ -85,6 +85,7 @@ const struct avr_model MODEL_ATMEGA1280 = {
     .reg_status     = 0x5f,
     .reg_spmcsr     = 0x57,
     .reg_mcucr      = 0x55,
+    .vec_spmrdy     = 0xa0,
     .port_count     = sizeof(ports)/sizeof(ports[0]),
     .ports          = ports,
     .timer_count    = sizeof(timers)/sizeof(timers[0]),

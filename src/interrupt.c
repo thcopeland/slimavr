@@ -29,6 +29,9 @@ void avr_check_interrupts(struct avr *avr) {
         uint32_t vec = avr_find_timer_interrupt(avr);
         if (vec != 0xffffffff) {
             schedule_interrupt(avr, vec);
+        } else if ((avr->spm_status & 1) && (avr->reg[avr->model.reg_spmcsr] & 0x80)) {
+            avr->spm_status &= ~1;
+            schedule_interrupt(avr, avr->model.vec_spmrdy);
         }
     }
 }

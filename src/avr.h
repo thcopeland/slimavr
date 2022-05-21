@@ -54,6 +54,7 @@ struct avr {
     struct avr_timerstate *timer_data;
     struct avr_pending_inst pending_inst;
     uint8_t *flash_pgbuff;      // used for spm
+    uint8_t spm_status;         // spm state [delay (TODO):7][interrupt:1]
 };
 
 /*

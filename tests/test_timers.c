@@ -19,7 +19,7 @@ void test_8bit_timer_simple(void) {
 
 
 int main(int argc, char **argv) {
-    test_8bit_timer_simple();
+    // test_8bit_timer_simple();
     // test_8bit_timer_complex();
     // test_8bit_timer_pwm();
     return 0;

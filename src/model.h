@@ -64,16 +64,19 @@ struct avr_model {
     uint16_t reg_spmcsr;
     uint16_t reg_mcucr;
 
+    // important interrupt vectors
+    uint32_t vec_spmrdy;        // store program memory completed
+
     // general purpose IO information
     uint16_t port_count;
-    const struct avr_port * ports;
+    const struct avr_port *ports;
 
     // timers
     uint8_t timer_count;
-    const struct avr_timer * timers;
+    const struct avr_timer *timers;
 
     // register types and special behavior
-    const struct avr_register * regmap;
+    const struct avr_register *regmap;
 };
 
 extern const struct avr_model MODEL_ATMEGA1280;

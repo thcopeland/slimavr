@@ -35,7 +35,7 @@ void flash_write_page(struct avr *avr, uint32_t addr) {
         memcpy(avr->rom+addr, avr->flash_pgbuff, avr->model.flash_pgsize);
         // Mark as immediately complete. This is inaccurate for any writes outside
         // the NRWW section, but simple and compatible.
-        // TODO trigger interrupt
+        avr->spm_status |= 1;
         avr->reg[avr->model.reg_spmcsr] &= ~(AVR_SPM_PGWRT|AVR_SPM_SPMEN);
     }
 }
