@@ -128,8 +128,8 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
     // COM_SPECIAL indicates that this is a special case that has been already
     // handled in the WGM switch above
     if (coma != COM_SPECIAL) coma = com_table[(comvals>>6)];
-    if (tmr->comparators > 1 && comb != COM_SPECIAL) comb = com_table[(comvals>>4) & 0xff];
-    if (tmr->comparators > 2 && comc != COM_SPECIAL) comc = com_table[(comvals>>2) & 0xff];
+    if (tmr->comparators > 1 && comb != COM_SPECIAL) comb = com_table[(comvals>>4) & 0x03];
+    if (tmr->comparators > 2 && comc != COM_SPECIAL) comc = com_table[(comvals>>2) & 0x03];
 
     // enum avr_timer_com coma = com_table[(comvals>>6)],
     //                    comb = tmr->comparators > 1 ? com_table[(comvals>>4) & 0xff] : COM_DISCONNECTED,

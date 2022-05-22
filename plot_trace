@@ -1,0 +1,11 @@
+set terminal png background "white" #size 3000,1400
+set output 'trace.png'
+set title 'Timer Pin Data'
+set key left box
+#set xrange [0:49979687]
+# set yrange [0:1.5]
+
+plot 'pb7.dat' with lines title "PB7", \
+     'pg5.dat' with lines title "PG5", \
+     'tcnt0.dat' with lines title "TCNT0"
+
