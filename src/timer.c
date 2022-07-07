@@ -73,39 +73,81 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
             break;
         case WGM_FAST_PWM_8BIT:
             top = 0xff;
+            sync = 0;
+            ovf = top;
+            com_table = tmr->com_fast_pwm_table;
             break;
         case WGM_FAST_PWM_9BIT:
             top = 0x1ff;
+            sync = 0;
+            ovf = top;
+            com_table = tmr->com_fast_pwm_table;
             break;
         case WGM_FAST_PWM_10BIT:
             top = 0x3ff;
+            sync = 0;
+            ovf = top;
+            com_table = tmr->com_fast_pwm_table;
             break;
         case WGM_FAST_PWM_ICR:
             top = get_timer_reg(avr, tmr, tmr->reg_icr);
+            sync = 0;
+            ovf = top;
+            com_table = tmr->com_fast_pwm_table;
             break;
         case WGM_FAST_PWM_OCRA:
             top = get_timer_reg(avr, tmr, tmr->reg_ocra);
+            sync = 0;
+            ovf = top;
+            com_table = tmr->com_fast_pwm_table;
             break;
         case WGM_PHASE_PWM_8BIT:
             top = 0xff;
+            sync = top;
+            rev = top;
+            ovf = 0;
+            com_table = tmr->com_phase_pwm_table;
             break;
         case WGM_PHASE_PWM_9BIT:
             top = 0x1ff;
+            sync = top;
+            rev = top;
+            ovf = 0;
+            com_table = tmr->com_phase_pwm_table;
             break;
         case WGM_PHASE_PWM_10BIT:
             top = 0x3ff;
+            sync = top;
+            rev = top;
+            ovf = 0;
+            com_table = tmr->com_phase_pwm_table;
             break;
         case WGM_PHASE_PWM_ICR:
             top = get_timer_reg(avr, tmr, tmr->reg_icr);
+            sync = top;
+            ovf = 0;
+            com_table = tmr->com_phase_pwm_table;
             break;
         case WGM_PHASE_PWM_OCRA:
             top = get_timer_reg(avr, tmr, tmr->reg_ocra);
+            sync = top;
+            rev = top;
+            ovf = 0;
+            com_table = tmr->com_phase_pwm_table;
             break;
         case WGM_PHASE_FREQ_PWM_ICR:
             top = get_timer_reg(avr, tmr, tmr->reg_icr);
+            sync = 0;
+            rev = top;
+            ovf = 0;
+            com_table = tmr->com_phase_pwm_table;
             break;
         case WGM_PHASE_FREQ_PWM_OCRA:
             top = get_timer_reg(avr, tmr, tmr->reg_ocra);
+            sync = 0;
+            rev = top;
+            ovf = 0;
+            com_table = tmr->com_phase_pwm_table;
             break;
     }
 
@@ -125,15 +167,93 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
         // }
     }
 
-    // COM_SPECIAL indicates that this is a special case that has been already
-    // handled in the WGM switch above
-    if (coma != COM_SPECIAL) coma = com_table[(comvals>>6)];
-    if (tmr->comparators > 1 && comb != COM_SPECIAL) comb = com_table[(comvals>>4) & 0x03];
-    if (tmr->comparators > 2 && comc != COM_SPECIAL) comc = com_table[(comvals>>2) & 0x03];
+    coma = com_table[(comvals>>6)];
+    if (tmr->comparators > 1) comb = com_table[(comvals>>4) & 0x03];
+    if (tmr->comparators > 2) comc = com_table[(comvals>>2) & 0x03];
 
-    // enum avr_timer_com coma = com_table[(comvals>>6)],
-    //                    comb = tmr->comparators > 1 ? com_table[(comvals>>4) & 0xff] : COM_DISCONNECTED,
-    //                    comc = tmr->comparators > 2 ? com_table[(comvals>>2) & 0xff] : COM_DISCONNECTED;
+    // handle special cases (ocra/b/c == 0 or top)
+    switch (wgm) {
+        case WGM_FAST_PWM_8BIT:
+        case WGM_FAST_PWM_9BIT:
+        case WGM_FAST_PWM_10BIT:
+        case WGM_FAST_PWM_ICR:
+        case WGM_FAST_PWM_OCRA:
+            if (coma != COM_DISCONNECTED) {
+                if (avr->reg[tmr->reg_ocra] == 0) {
+                    if (clk == 0) avr->reg[tmr->reg_oca] |= tmr->msk_oca;
+                    else avr->reg[tmr->reg_oca] &= ~tmr->msk_oca;
+                    coma = COM_SPECIAL;
+                } else if (avr->reg[tmr->reg_ocra] == top) {
+                    if (coma == COM_INVERTING) avr->reg[tmr->reg_oca] |= tmr->msk_oca;
+                    else avr->reg[tmr->reg_oca] &= ~tmr->msk_oca;
+                    coma = COM_SPECIAL;
+                }
+            }
+
+            if (comb != COM_DISCONNECTED) {
+                if (avr->reg[tmr->reg_ocrb] == 0) {
+                    if (clk == 0) avr->reg[tmr->reg_ocb] |= tmr->msk_ocb;
+                    else avr->reg[tmr->reg_ocb] &= ~tmr->msk_ocb;
+                    comb = COM_SPECIAL;
+                } else if (avr->reg[tmr->reg_ocrb] == top) {
+                    if (comb == COM_INVERTING) avr->reg[tmr->reg_ocb] |= tmr->msk_ocb;
+                    else avr->reg[tmr->reg_ocb] &= ~tmr->msk_ocb;
+                    comb = COM_SPECIAL;
+                }
+            }
+
+            if (comc != COM_DISCONNECTED) {
+                if (avr->reg[tmr->reg_ocrc] == 0) {
+                    if (clk == 0) avr->reg[tmr->reg_occ] |= tmr->msk_occ;
+                    else avr->reg[tmr->reg_occ] &= ~tmr->msk_occ;
+                    comc = COM_SPECIAL;
+                } else if (avr->reg[tmr->reg_ocrc] == top) {
+                    if (comc == COM_INVERTING) avr->reg[tmr->reg_occ] |= tmr->msk_occ;
+                    else avr->reg[tmr->reg_occ] &= ~tmr->msk_occ;
+                    comc = COM_SPECIAL;
+                }
+            }
+            break;
+        case WGM_PHASE_PWM_8BIT:
+        case WGM_PHASE_PWM_9BIT:
+        case WGM_PHASE_PWM_10BIT:
+        case WGM_PHASE_PWM_ICR:
+        case WGM_PHASE_PWM_OCRA:
+        case WGM_PHASE_FREQ_PWM_ICR:
+        case WGM_PHASE_FREQ_PWM_OCRA:
+            if ((avr->reg[tmr->reg_ocra] == 0 && (coma == COM_NON_INVERTING || coma == COM_CLEAR_UP_SET_DOWN)) ||
+                (avr->reg[tmr->reg_ocra] == top && (coma == COM_INVERTING || coma == COM_SET_UP_CLEAR_DOWN))) {
+                avr->reg[tmr->reg_oca] &= ~tmr->msk_oca;
+                coma = COM_SPECIAL;
+            } else if ((avr->reg[tmr->reg_ocra] == 0 && (coma == COM_INVERTING || coma == COM_SET_UP_CLEAR_DOWN)) ||
+                (avr->reg[tmr->reg_ocra] == top && (coma == COM_NON_INVERTING || coma == COM_CLEAR_UP_SET_DOWN))) {
+                avr->reg[tmr->reg_oca] |= tmr->msk_oca;
+                coma = COM_SPECIAL;
+            }
+
+            if ((avr->reg[tmr->reg_ocrb] == 0 && (comb == COM_NON_INVERTING || comb == COM_CLEAR_UP_SET_DOWN)) ||
+                (avr->reg[tmr->reg_ocrb] == top && (comb == COM_INVERTING || comb == COM_SET_UP_CLEAR_DOWN))) {
+                avr->reg[tmr->reg_ocb] &= ~tmr->msk_ocb;
+                comb = COM_SPECIAL;
+            } else if ((avr->reg[tmr->reg_ocrb] == 0 && (comb == COM_INVERTING || comb == COM_SET_UP_CLEAR_DOWN)) ||
+                (avr->reg[tmr->reg_ocrb] == top && (comb == COM_NON_INVERTING || comb == COM_CLEAR_UP_SET_DOWN))) {
+                avr->reg[tmr->reg_ocb] |= tmr->msk_ocb;
+                comb = COM_SPECIAL;
+            }
+
+            if ((avr->reg[tmr->reg_ocrc] == 0 && (comc == COM_NON_INVERTING || comc == COM_CLEAR_UP_SET_DOWN)) ||
+                (avr->reg[tmr->reg_ocrc] == top && (comc == COM_INVERTING || comc == COM_SET_UP_CLEAR_DOWN))) {
+                avr->reg[tmr->reg_occ] &= ~tmr->msk_occ;
+                comc = COM_SPECIAL;
+            } else if ((avr->reg[tmr->reg_ocrc] == 0 && (comc == COM_INVERTING || comc == COM_SET_UP_CLEAR_DOWN)) ||
+                (avr->reg[tmr->reg_ocrc] == top && (comc == COM_NON_INVERTING || comc == COM_CLEAR_UP_SET_DOWN))) {
+                avr->reg[tmr->reg_occ] |= tmr->msk_occ;
+                comc = COM_SPECIAL;
+            }
+            break;
+        default:
+            break;
+    }
 
     if (clk == 0) {
         if (coma == COM_NON_INVERTING)  avr->reg[tmr->reg_oca] |= tmr->msk_oca;
