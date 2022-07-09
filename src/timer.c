@@ -320,7 +320,10 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
     }
 
     clk = clk+state->delta;
-    if (clk > top) clk = 0;
+    if (clk > top) { // catches underflow as well
+        clk = 0;
+        state->delta = 1;
+    }
 
     if (clk == rev) {
         state->delta = state->delta > 0 ? -1 : 1;

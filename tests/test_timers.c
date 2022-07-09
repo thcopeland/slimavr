@@ -9,7 +9,7 @@ void test_8bit_timer_interrupts(void) {
 
 void test_8bit_timer_output(void) {
     printf("testing 8 bit timers (part 2)... ");
-    run_test("asm/timer_8bit_output.hex", 800, MODEL_ATMEGA1280);
+    run_test("asm/timer_8bit_output.hex", 1450, MODEL_ATMEGA1280);
 }
 
 int main(int argc, char **argv) {
