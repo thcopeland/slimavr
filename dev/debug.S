@@ -134,131 +134,75 @@ status:             .byte 1
     jmp main
 .org OC1Aaddr
     jmp isr_loop
-.org OC0Baddr
-    jmp t_ocb
-.org OVF0addr
-    jmp t_ovf
+.org OC0Aaddr
+    jmp t_oca
 
-t_ocb:
-    in r0, SREG
-    inc r22
-    lds r17, TCNT0+0x20
-    out SREG, r0
-    reti
-
-t_ovf:
-    in r0, SREG
-    inc r21
-    lds r17, TCNT0+0x20
-    out SREG, r0
+t_oca:
+    lds r16, TCNT0+0x20
+    in ZL, SPL
+    in ZH, SPH
+    ldd r17, Z+2
+    sts TCCR0B, r1
     reti
 
 main:
-    clr r1
-    clr r20
-    clr r21
-    cli
-
-t_normal:
-    ldi r16, 1
-    sts status, r16
-    ldi r16, 0
-    sts TCCR0A+0x20, r16    ; + 0x20 to convert from IO address to standard address
-    ldi r16, (1 << CS00)
-    sts TCCR0B+0x20, r16
-    sts TCNT0+0x20, r1
-    ldi r16, (1 << TOIE0)
-    sts TIMSK0, r16
     sei
-wait1:
-    lds r16, TCNT0+0x20
-    inc r20
-    cpi r21, 3
-    brlo wait1
-check1:
-    cli
-    sts TCCR0B+0x20, r1
-    lds r16, TCNT0+0x20
-    cpi r16, 21 ; approximate
-    brne fail1
-    cpi r20, 122 ; approximate
-    brne fail1
-    rjmp t_prescaled
-fail1:
-    ; rjmp fail1
-
-t_prescaled:
-    clr r20
-    clr r21
-    ldi r16, 2
-    sts status, r16
-    ldi r16, 0
-    sts TCCR0A+0x20, r16
-    ldi r16, (1 << CS01)
-    sts TCCR0B+0x20, r16
-    sts TCNT0+0x20, r1
-    ldi r16, (1 << TOIE0)
-    sts TIMSK0, r16
-    sei
-wait2:
-    lds r16, TCNT0+0x20
-    inc r20
-    cpi r21, 3
-    brlo wait2
-check2:
-    cli
-    sts TCCR0B+0x20, r1
-    lds r16, TCNT0+0x20
-    cpi r16, 2 ; approximate
-    brne fail2
-    cpi r20, 250
-    brne fail2
-    rjmp t_ctc
-fail2:
-    ; rjmp fail2
-
-t_ctc:
-    clr r20
-    clr r21
-    clr r22
-    ldi r16, 3
-    sts status, r16
-    ldi r16, 0xff ; TODO: use 0xff once clear
-    sts TIFR0+0x20, r16
-    ldi r16, 64
-    ldi r17, 60
-    ldi r18, (1 << TOIE0) | (1 << OCIE0B)
-    ldi r19, (1 << WGM01)
-    ldi r20, (1 << CS00)
-    sts TCNT0+0x20, r1
-    sts OCR0A+0x20, r16
-    sts OCR0B+0x20, r17
-    sts TIMSK0, r18
-    sts TCCR0A+0x20, r19
-    sts TCCR0B+0x20, r20
-    sei
-wait3:
-    lds r16, TCNT0+0x20
-    inc r20
-    cpi r22, 5
-    brlo wait3
-check3:
-    cli
-    sts TCCR0B+0x20, r1
-    lds r16, TCNT0+0x20
-    ; cpi r16, 22 ; should be 21
-    ; brne fail3
-    ; cpi r20, 44 ; approximate
-    ; brne fail3
-    ; sts status, r1
-stall:
-    ; rjmp stall
-fail3:
-    ; rjmp fail3
-
+;     ldi r16, 7
+;     ldi r17, (1 << OCIE0A)
+;     ldi r18, (1 << CS00)
+;     sts TCNT0+0x20, r1
+;     sts OCR0A+0x20, r16
+;     sts TCCR0A+0x20, r1
+;     sts TIMSK0, r17
+;     sts TCCR0B+0x20, r18
+; nops: ; 0x42
+;     nop ; 1
+;     nop ; 2
+;     nop ; 3
+;     nop ; 4
+;     nop ; 5
+;     nop ; 6
+;     nop ; 7
+; ; expected return address <--- 0x49
+;     nop
+;     nop
+; ; actual return address <----- 0x4b
+;     nop
+;     nop
+;     nop
+; ; at this point, r16=16, r17=0x4b
+;     ; x: rcall x
+    ldi r16, 45
+    sts OCR0A, r16
+    clr r16
+    lds r16, OCR0A ; 45
     write_byte framebuffer, r16
-    ; write_byte framebuffer+DISPLAY_WIDTH*2, r17
-    write_byte framebuffer+DISPLAY_WIDTH*4, r20
+
+    sti TCCR0A, (1<<WGM00)
+    sti TCCR0B, 0
+    ldi r16, 45
+    sts OCR0A, r16
+    clr r16
+    lds r16, OCR0A ; 45
+    write_byte framebuffer+DISPLAY_WIDTH, r16
+
+    ldi r16, 45
+    sts OCR5AH, r16
+    clr r16
+    lds r16, OCR5AH ; 0
+    write_byte framebuffer+2*DISPLAY_WIDTH, r16
+
+    ldi r16, 45
+    sts OCR5AH, r16
+    inc r16
+    sts OCR5AL, r16
+    clr r16
+    lds r16, OCR5AL ; 46
+    lds r16, OCR5AH ; 45
+    write_byte framebuffer+3*DISPLAY_WIDTH, r16
+
+    ; write_byte framebuffer+DISPLAY_WIDTH*2, r17 ; 0x4b
+    ; write_byte framebuffer+DISPLAY_WIDTH*4, r20
     ; write_byte framebuffer+DISPLAY_WIDTH*6, r21
 
 vga:
@@ -357,3 +301,4 @@ _loop_end:
     reti
 
 ; avra debug.S && avrdude -p atmega1280 -c wiring -P /dev/ttyACM0 -b 115200 -D -U flash:w:debug.S.hex:i
+; avra debug.S && avrdude -p atmega1280 -c arduino -P /dev/ttyUSB0 -b 57600 -D -U flash:w:debug.S.hex:i

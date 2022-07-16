@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include "model.h"
 #include "inst.h"
 #include "interrupt.h"
@@ -40,24 +41,32 @@ static void alloc_avr_memory(struct avr *avr) {
         memset(avr->reg, 0, avr->model.regsize);
     }
 
+    avr->reg_buff = NULL;
+    avr->flash_pgbuff = NULL;
+    avr->timer_data = NULL;
+
+    avr->reg_buff = malloc(avr->model.regsize);
+    if (avr->reg_buff == NULL) goto nomem;
+
     avr->flash_pgbuff = malloc(avr->model.flash_pgsize);
-    if (avr->flash_pgbuff == NULL) {
-        free(avr->mem);
-        avr->mem = NULL;
-        return;
-    }
+    if (avr->flash_pgbuff == NULL) goto nomem;
 
     avr->timer_data = malloc(sizeof(avr->timer_data[0])*avr->model.timer_count);
     if (avr->timer_data == NULL) {
-        free(avr->mem);
-        free(avr->flash_pgbuff);
-        avr->mem = NULL;
-        return;
+        goto nomem;
     } else {
         for (int i = 0; i < avr->model.timer_count; i++) {
             timerstate_init(avr->timer_data+i);
         }
     }
+
+    return;
+
+nomem:
+    free(avr->mem);
+    free(avr->reg_buff);
+    free(avr->flash_pgbuff);
+    avr->mem = NULL;
 }
 
 struct avr *avr_init(struct avr_model model) {
@@ -90,6 +99,7 @@ struct avr *avr_init(struct avr_model model) {
 void avr_free(struct avr *avr) {
     if (avr) {
         free(avr->mem);
+        free(avr->reg_buff);
         free(avr->flash_pgbuff);
         free(avr->timer_data);
         free(avr);
@@ -286,7 +296,15 @@ void avr_step(struct avr *avr) {
         avr->progress--;
         if (avr->progress <= 0) {
             if (avr->pending_inst.type == AVR_PENDING_COPY) {
-                avr->mem[avr->pending_inst.dst] = avr->mem[avr->pending_inst.src];
+                if (avr->pending_inst.dst < avr->model.regsize) {
+                    avr_set_reg(avr, avr->pending_inst.dst, avr->mem[avr->pending_inst.src]);
+                } else if (avr->pending_inst.src < avr->model.regsize) {
+                    avr->mem[avr->pending_inst.dst] = avr_get_reg(avr, avr->pending_inst.src);
+                } else {
+                    // not supported by AVR instruction set
+                    LOG("unexpected memory -> memory copy\n");
+                    avr->mem[avr->pending_inst.dst] = avr->mem[avr->pending_inst.src];
+                }
                 avr->pending_inst.type = AVR_PENDING_NONE;
             }
             avr->status = CPU_STATUS_NORMAL;
@@ -305,5 +323,85 @@ void avr_step(struct avr *avr) {
 
     if (avr->status == CPU_STATUS_NORMAL) {
         avr_exec(avr);
+    }
+}
+
+uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
+    enum avr_register_type type = avr->model.regmap[reg].type;
+
+    switch (type) {
+        case REG_RESERVED:
+            return 0xff;
+
+        case REG_VALUE:
+        case REG_UNSUPPORTED:
+        case REG_CLEAR_ON_SET:
+            return avr->reg[reg];
+
+        case REG_ATOMIC_LOW:
+        case REG_TIMER0_LOW_BUFF:
+        case REG_TIMER1_LOW_BUFF:
+        case REG_TIMER2_LOW_BUFF:
+        case REG_TIMER3_LOW_BUFF:
+        case REG_TIMER4_LOW_BUFF:
+        case REG_TIMER5_LOW_BUFF:
+            avr->reg_buff[reg+1] = avr->reg[reg+1];
+            avr->reg_buff[reg] = avr->reg[reg];
+            return avr->reg_buff[reg];
+
+        case REG_ATOMIC_HIGH:
+        case REG_TIMER0_HIGH_BUFF:
+        case REG_TIMER1_HIGH_BUFF:
+        case REG_TIMER2_HIGH_BUFF:
+        case REG_TIMER3_HIGH_BUFF:
+        case REG_TIMER4_HIGH_BUFF:
+        case REG_TIMER5_HIGH_BUFF:
+            return avr->reg_buff[reg];
+
+        default:
+            assert(0); // should be comprehensive
+    }
+}
+
+void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
+    enum avr_register_type type = avr->model.regmap[reg].type;
+
+    switch (type) {
+        case REG_RESERVED:
+            break;
+
+        case REG_VALUE:
+        case REG_UNSUPPORTED:
+            avr->reg[reg] = val;
+            break;
+
+        case REG_CLEAR_ON_SET:
+            avr->reg[reg] &= ~val;
+            break;
+
+        case REG_ATOMIC_LOW:
+        case REG_TIMER0_LOW_BUFF:
+        case REG_TIMER1_LOW_BUFF:
+        case REG_TIMER2_LOW_BUFF:
+        case REG_TIMER3_LOW_BUFF:
+        case REG_TIMER4_LOW_BUFF:
+        case REG_TIMER5_LOW_BUFF:
+            avr->reg_buff[reg] = val;
+            avr->reg[reg+1] = avr->reg_buff[reg+1];
+            avr->reg[reg] = val;
+            break;
+
+        case REG_ATOMIC_HIGH:
+        case REG_TIMER0_HIGH_BUFF:
+        case REG_TIMER1_HIGH_BUFF:
+        case REG_TIMER2_HIGH_BUFF:
+        case REG_TIMER3_HIGH_BUFF:
+        case REG_TIMER4_HIGH_BUFF:
+        case REG_TIMER5_HIGH_BUFF:
+            avr->reg_buff[reg] = val;
+            break;
+
+        default:
+            assert(0); // should be comprehensive
     }
 }

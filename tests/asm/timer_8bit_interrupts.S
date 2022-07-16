@@ -90,7 +90,7 @@ t_ctc:
     clr r22
     ldi r16, 3
     sts status, r16
-    ldi r16, 0x00 ; TODO: use 0xff once clear
+    ldi r16, 0xff
     sts TIFR0+0x20, r16
     ldi r16, 64
     ldi r17, 60

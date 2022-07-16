@@ -13,7 +13,7 @@ void test_flash(void) {
 }
 
 int main(int argc, char **argv) {
-    // test_sram();
-    // test_flash();
+    test_sram();
+    test_flash();
     return 0;
 }

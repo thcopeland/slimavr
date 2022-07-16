@@ -18,8 +18,8 @@ void test_multiplication(void) {
 }
 
 int main(int argc, char **argv) {
-    // test_arithmetic();
-    // test_bitwise();
-    // test_multiplication();
+    test_arithmetic();
+    test_bitwise();
+    test_multiplication();
     return 0;
 }

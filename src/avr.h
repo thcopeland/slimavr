@@ -39,7 +39,6 @@ struct avr {
     uint32_t pc;                // program counter
     uint64_t clock;             // number of cycles
     uint64_t insts;             // number of instructions
-    uint8_t tmps[16];           // internal temporary registers
 
     // memory
     uint8_t *mem;
@@ -49,6 +48,8 @@ struct avr {
     uint8_t *reg;               // registers
     uint8_t *ram;               // sram
     uint8_t *eep;               // eeprom
+
+    uint8_t *reg_buff;          // buffered register values
 
     // various internal state
     struct avr_timerstate *timer_data;
@@ -73,16 +74,22 @@ void avr_free(struct avr *avr);
 void avr_step(struct avr *avr);
 
 /*
- * Read a register's value. [[This is equivalent to reading directly from avr->reg
- * or avr->mem, included for read/write symmetry. TODO: for now, anyway]]
+ * Read a register's value. For most registers, this is equivalent to reading
+ * avr->reg directly, but a fair number have specialized behavior, including
+ * changing CPU state. In most cases, you won't want to trigger these side
+ * effects and should access avr->reg or avr->mem directly.
+ *
+ * Note: This is idempotent and used in the IN and LD* instruction implementations.
  */
 uint8_t avr_get_reg(struct avr *avr, uint16_t reg);
 
 /*
  * Set a register's value. This will trigger the proper interrupts and any other
- * side effects. If you don't want/care about these, it may be preferable to
- * write avr->reg directly.
+ * side effects. For some registers (eg IO), you should use this function, but
+ * in general, it will be preferable to write avr->reg directly.
+ *
+ * Note: This is idempotent and used in the OUT and ST* instructions implementations.
  */
-int avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val);
+void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val);
 
 #endif

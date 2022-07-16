@@ -267,7 +267,7 @@ void inst_in(struct avr *avr, uint16_t inst) {
     uint8_t dst = (inst >> 4) & 0x1f,
             addr = (((inst >> 5) & 0x30) | (inst & 0xf)) + avr->model.io_offset;
     LOG("in\tr%d, 0x%02x\n", dst, addr - avr->model.io_offset);
-    avr->reg[dst] = avr->reg[addr];
+    avr->reg[dst] = avr_get_reg(avr, addr);
     avr->pc += 2;
 }
 
@@ -773,7 +773,12 @@ static void sim_access(struct avr *avr, uint16_t ptr, uint8_t disp, uint8_t reg,
             avr->pending_inst.dst = addr+disp;
             avr->pending_inst.src = reg;
         } else {
-            avr->mem[addr+disp] = avr->reg[reg];
+            // TODO: do this right, this is logically stupid
+            if (addr+disp < avr->model.regsize) {
+                avr_set_reg(avr, addr+disp, avr->reg[reg]);
+            } else {
+                avr->mem[addr+disp] = avr->reg[reg];
+            }
         }
     } else {
         if (addr+disp < avr->model.regsize) {
@@ -781,7 +786,12 @@ static void sim_access(struct avr *avr, uint16_t ptr, uint8_t disp, uint8_t reg,
             avr->pending_inst.dst = reg;
             avr->pending_inst.src = addr+disp;
         } else {
-            avr->reg[reg] = avr->mem[addr+disp];
+            // TODO
+            if (addr+disp < avr->model.regsize) {
+                avr->reg[reg] = avr_get_reg(avr, addr+disp);
+            } else {
+                avr->reg[reg] = avr->mem[addr+disp];
+            }
         }
     }
 
@@ -846,7 +856,12 @@ void inst_lds(struct avr *avr, uint16_t inst) {
             avr->pending_inst.dst = dst;
             avr->pending_inst.src = addr;
         } else {
-            avr->reg[dst] = avr->mem[addr];
+            // TODO fix me
+            if (addr < avr->model.regsize) {
+                avr->reg[dst] = avr_get_reg(avr, addr);
+            } else {
+                avr->reg[dst] = avr->mem[addr];
+            }
         }
         avr->pc += 4;
         avr->progress = 1;
@@ -903,7 +918,11 @@ void inst_sts(struct avr *avr, uint16_t inst) {
             avr->pending_inst.dst = addr;
             avr->pending_inst.src = src;
         } else {
-            avr->mem[addr] = avr->reg[src];
+            if (addr < avr->model.regsize) {
+                avr_set_reg(avr, addr, avr->reg[src]);
+            } else {
+                avr->mem[addr] = avr->reg[src];
+            }
         }
         avr->pc += 4;
         avr->progress = 1;
@@ -996,8 +1015,7 @@ void inst_out(struct avr *avr, uint16_t inst) {
     uint8_t src = (inst >> 4) & 0x1f,
             addr = (((inst >> 5) & 0x30) | (inst & 0xf)) + avr->model.io_offset;
     LOG("out\t0x%02x, r%d\n", addr - avr->model.io_offset, src);
-    avr->reg[addr] = avr->reg[src];
-    // TODO find some reasonably performant and clean way to handle changing special regs
+    avr_set_reg(avr, addr, avr->reg[src]);
     // TODO SPMCSR should have a four-cycle expiration on AVR_SPM_SPMEN
     avr->pc += 2;
 }
