@@ -6,24 +6,22 @@
 #include "timer.h"
 
 enum avr_register_type {
-    REG_VALUE,              // register is accessed directly
-    REG_RESERVED,           // always read 0xff
-    REG_UNSUPPORTED,        // same as REG_VALUE
-    REG_CLEAR_ON_SET,       // a bit is cleared when 1 is written
-    REG_ATOMIC_HIGH,        // atomic 16-bit access, high byte
-    REG_ATOMIC_LOW,         // atomic 16-bit access, low byte, triggers the 16-bit operation
-    REG_TIMER0_HIGH_BUFF,   // atomic 16-bit access for high byte but to an internal 16-bit buffer
-    REG_TIMER0_LOW_BUFF,    // atomic 16-bit access for low byte, triggers the 16-bit operation (use this for 8-bit too, eg OCRA0)
-    REG_TIMER1_HIGH_BUFF,
-    REG_TIMER1_LOW_BUFF,
-    REG_TIMER2_HIGH_BUFF,
-    REG_TIMER2_LOW_BUFF,
-    REG_TIMER3_HIGH_BUFF,
-    REG_TIMER3_LOW_BUFF,
-    REG_TIMER4_HIGH_BUFF,
-    REG_TIMER4_LOW_BUFF,
-    REG_TIMER5_HIGH_BUFF,
-    REG_TIMER5_LOW_BUFF
+    REG_VALUE,          // register is accessed directly
+    REG_RESERVED,       // always read 0xff
+    REG_UNSUPPORTED,    // same as REG_VALUE
+    REG_CLEAR_ON_SET,   // a bit is cleared when 1 is written (eg TIFRn)
+    REG_TIMER0_HIGH,    // atomic 16-bit access, high byte
+    REG_TIMER0_LOW,     // atomic 16-bit access, low byte, triggers the 16-bit operation (use this for 8-bit too, eg OCRA0)
+    REG_TIMER1_HIGH,
+    REG_TIMER1_LOW,
+    REG_TIMER2_HIGH,
+    REG_TIMER2_LOW,
+    REG_TIMER3_HIGH,
+    REG_TIMER3_LOW,
+    REG_TIMER4_HIGH,
+    REG_TIMER4_LOW,
+    REG_TIMER5_HIGH,
+    REG_TIMER5_LOW
 
     // at this time, more complex behavior such as SPI, USART, external memory,
     // external clocking, etc is not supported.

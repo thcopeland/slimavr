@@ -3,12 +3,13 @@
 
 void timerstate_init(struct avr_timerstate *state) {
     state->prescale_clock = 0;
-    // state->ocral_buff = 0;
-    // state->ocrah_buff = 0;
-    // state->ocrbl_buff = 0;
-    // state->ocrbh_buff = 0;
-    // state->ocrcl_buff = 0;
-    // state->ocrch_buff = 0;
+    state->ocra_high = 0;
+    state->ocra_low = 0;
+    state->ocrb_high = 0;
+    state->ocrb_low = 0;
+    state->ocrc_high = 0;
+    state->ocrc_low = 0;
+    state->tmp = 0;
     state->delta = 1;
 }
 

@@ -95,7 +95,6 @@ struct avr_timer {
     uint16_t reg_ocra;      // timer output compare register A
     uint16_t reg_ocrb;      // timer output compare register B
     uint16_t reg_ocrc;      // timer output compare register C
-    // uint8_t  reg_tmp16;     // (internal) temporary register to use for atomic 16 bit operations (0-31)
     uint16_t reg_tccra;     // timer/counter control register A
     uint16_t reg_tccrb;     // timer/counter control register B
     uint16_t reg_tccrc;     // timer/counter control register C
@@ -131,14 +130,14 @@ struct avr_timer {
 
 struct avr_timerstate {
     uint16_t prescale_clock;
-    uint8_t ocral_true;
-    uint8_t ocrah_true;
-    uint8_t ocrbl_true;
-    uint8_t ocrbh_true;
-    uint8_t ocrcl_true;
-    uint8_t ocrch_true;
+    uint8_t ocra_low;
+    uint8_t ocra_high;
+    uint8_t ocrb_low;
+    uint8_t ocrb_high;
+    uint8_t ocrc_low;
+    uint8_t ocrc_high;
+    uint8_t tmp;
     int8_t delta;
-    uint8_t val; // TODO unused
 };
 
 struct avr;

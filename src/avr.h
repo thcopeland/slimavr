@@ -49,8 +49,6 @@ struct avr {
     uint8_t *ram;               // sram
     uint8_t *eep;               // eeprom
 
-    uint8_t *reg_buff;          // buffered register values
-
     // various internal state
     struct avr_timerstate *timer_data;
     struct avr_pending_inst pending_inst;

@@ -41,12 +41,8 @@ static void alloc_avr_memory(struct avr *avr) {
         memset(avr->reg, 0, avr->model.regsize);
     }
 
-    avr->reg_buff = NULL;
     avr->flash_pgbuff = NULL;
     avr->timer_data = NULL;
-
-    avr->reg_buff = malloc(avr->model.regsize);
-    if (avr->reg_buff == NULL) goto nomem;
 
     avr->flash_pgbuff = malloc(avr->model.flash_pgsize);
     if (avr->flash_pgbuff == NULL) goto nomem;
@@ -64,7 +60,6 @@ static void alloc_avr_memory(struct avr *avr) {
 
 nomem:
     free(avr->mem);
-    free(avr->reg_buff);
     free(avr->flash_pgbuff);
     avr->mem = NULL;
 }
@@ -99,7 +94,6 @@ struct avr *avr_init(struct avr_model model) {
 void avr_free(struct avr *avr) {
     if (avr) {
         free(avr->mem);
-        free(avr->reg_buff);
         free(avr->flash_pgbuff);
         free(avr->timer_data);
         free(avr);
@@ -326,6 +320,23 @@ void avr_step(struct avr *avr) {
     }
 }
 
+// map between register type and timer index
+#define reg_type_timer(type) (((int)type-4)/2)
+
+// ensure that the mapping remains correct
+static_assert (reg_type_timer(REG_TIMER0_HIGH) == 0);
+static_assert (reg_type_timer(REG_TIMER0_LOW) == 0);
+static_assert (reg_type_timer(REG_TIMER1_HIGH) == 1);
+static_assert (reg_type_timer(REG_TIMER1_LOW) == 1);
+static_assert (reg_type_timer(REG_TIMER2_HIGH) == 2);
+static_assert (reg_type_timer(REG_TIMER2_LOW) == 2);
+static_assert (reg_type_timer(REG_TIMER3_HIGH) == 3);
+static_assert (reg_type_timer(REG_TIMER3_LOW) == 3);
+static_assert (reg_type_timer(REG_TIMER4_HIGH) == 4);
+static_assert (reg_type_timer(REG_TIMER4_LOW) == 4);
+static_assert (reg_type_timer(REG_TIMER5_HIGH) == 5);
+static_assert (reg_type_timer(REG_TIMER5_LOW) == 5);
+
 uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
     enum avr_register_type type = avr->model.regmap[reg].type;
 
@@ -338,25 +349,22 @@ uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
         case REG_CLEAR_ON_SET:
             return avr->reg[reg];
 
-        case REG_ATOMIC_LOW:
-        case REG_TIMER0_LOW_BUFF:
-        case REG_TIMER1_LOW_BUFF:
-        case REG_TIMER2_LOW_BUFF:
-        case REG_TIMER3_LOW_BUFF:
-        case REG_TIMER4_LOW_BUFF:
-        case REG_TIMER5_LOW_BUFF:
-            avr->reg_buff[reg+1] = avr->reg[reg+1];
-            avr->reg_buff[reg] = avr->reg[reg];
-            return avr->reg_buff[reg];
+        case REG_TIMER0_LOW:
+        case REG_TIMER1_LOW:
+        case REG_TIMER2_LOW:
+        case REG_TIMER3_LOW:
+        case REG_TIMER4_LOW:
+        case REG_TIMER5_LOW:
+            avr->timer_data[reg_type_timer(type)].tmp = avr->reg[reg+1];
+            return avr->reg[reg];
 
-        case REG_ATOMIC_HIGH:
-        case REG_TIMER0_HIGH_BUFF:
-        case REG_TIMER1_HIGH_BUFF:
-        case REG_TIMER2_HIGH_BUFF:
-        case REG_TIMER3_HIGH_BUFF:
-        case REG_TIMER4_HIGH_BUFF:
-        case REG_TIMER5_HIGH_BUFF:
-            return avr->reg_buff[reg];
+        case REG_TIMER0_HIGH:
+        case REG_TIMER1_HIGH:
+        case REG_TIMER2_HIGH:
+        case REG_TIMER3_HIGH:
+        case REG_TIMER4_HIGH:
+        case REG_TIMER5_HIGH:
+            return avr->timer_data[reg_type_timer(type)].tmp;
 
         default:
             assert(0); // should be comprehensive
@@ -379,26 +387,23 @@ void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
             avr->reg[reg] &= ~val;
             break;
 
-        case REG_ATOMIC_LOW:
-        case REG_TIMER0_LOW_BUFF:
-        case REG_TIMER1_LOW_BUFF:
-        case REG_TIMER2_LOW_BUFF:
-        case REG_TIMER3_LOW_BUFF:
-        case REG_TIMER4_LOW_BUFF:
-        case REG_TIMER5_LOW_BUFF:
-            avr->reg_buff[reg] = val;
-            avr->reg[reg+1] = avr->reg_buff[reg+1];
+        case REG_TIMER0_LOW:
+        case REG_TIMER1_LOW:
+        case REG_TIMER2_LOW:
+        case REG_TIMER3_LOW:
+        case REG_TIMER4_LOW:
+        case REG_TIMER5_LOW:
+            avr->reg[reg+1] = avr->timer_data[reg_type_timer(type)].tmp;
             avr->reg[reg] = val;
             break;
 
-        case REG_ATOMIC_HIGH:
-        case REG_TIMER0_HIGH_BUFF:
-        case REG_TIMER1_HIGH_BUFF:
-        case REG_TIMER2_HIGH_BUFF:
-        case REG_TIMER3_HIGH_BUFF:
-        case REG_TIMER4_HIGH_BUFF:
-        case REG_TIMER5_HIGH_BUFF:
-            avr->reg_buff[reg] = val;
+        case REG_TIMER0_HIGH:
+        case REG_TIMER1_HIGH:
+        case REG_TIMER2_HIGH:
+        case REG_TIMER3_HIGH:
+        case REG_TIMER4_HIGH:
+        case REG_TIMER5_HIGH:
+            avr->timer_data[reg_type_timer(type)].tmp = val;
             break;
 
         default:
