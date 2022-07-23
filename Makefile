@@ -2,8 +2,8 @@ SRC				= src
 OBJ 			= obj
 TEST			= tests
 DEFS			= -DDEBUG
-CFLAGS			= -O2 -flto -Wall -Wextra
-LDLIBS			= -lm
+CFLAGS		= -O2 -flto -Wall -Wextra
+LDLIBS		= -lm
 
 src_models 		= $(wildcard $(SRC)/models/*.c)
 src_models_o 	= $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(src_models))

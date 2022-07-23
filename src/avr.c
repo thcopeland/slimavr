@@ -290,7 +290,9 @@ void avr_step(struct avr *avr) {
         avr->progress--;
         if (avr->progress <= 0) {
             if (avr->pending_inst.type == AVR_PENDING_COPY) {
-                if (avr->pending_inst.dst < avr->model.regsize) {
+                if (avr->pending_inst.dst < avr->model.regsize && avr->pending_inst.src < avr->model.regsize) {
+                    avr_set_reg(avr, avr->pending_inst.dst, avr_get_reg(avr, avr->pending_inst.src));
+                } else if (avr->pending_inst.dst < avr->model.regsize) {
                     avr_set_reg(avr, avr->pending_inst.dst, avr->mem[avr->pending_inst.src]);
                 } else if (avr->pending_inst.src < avr->model.regsize) {
                     avr->mem[avr->pending_inst.dst] = avr_get_reg(avr, avr->pending_inst.src);
@@ -340,6 +342,8 @@ static_assert (reg_type_timer(REG_TIMER5_LOW) == 5);
 uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
     enum avr_register_type type = avr->model.regmap[reg].type;
 
+    // printf("GET %d\n", type);
+
     switch (type) {
         case REG_RESERVED:
             return 0xff;
@@ -356,6 +360,8 @@ uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
         case REG_TIMER4_LOW:
         case REG_TIMER5_LOW:
             avr->timer_data[reg_type_timer(type)].tmp = avr->reg[reg+1];
+            printf("tmp = %d\n", avr->reg[reg+1]);
+            printf("val = %d\n", avr->reg[reg]);
             return avr->reg[reg];
 
         case REG_TIMER0_HIGH:
@@ -374,6 +380,7 @@ uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
 void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
     enum avr_register_type type = avr->model.regmap[reg].type;
 
+    // printf("SET %d\n", type);
     switch (type) {
         case REG_RESERVED:
             break;
@@ -393,8 +400,12 @@ void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
         case REG_TIMER3_LOW:
         case REG_TIMER4_LOW:
         case REG_TIMER5_LOW:
+            printf("WRITE LOW\n");
+            printf("val = %x\n", val);
             avr->reg[reg+1] = avr->timer_data[reg_type_timer(type)].tmp;
             avr->reg[reg] = val;
+            printf("0x%x = tmp = %d\n", reg+1, avr->timer_data[reg_type_timer(type)].tmp);
+            printf("0x%x = %d\n", reg, val);
             break;
 
         case REG_TIMER0_HIGH:
@@ -403,7 +414,9 @@ void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
         case REG_TIMER3_HIGH:
         case REG_TIMER4_HIGH:
         case REG_TIMER5_HIGH:
+            printf("WRITE HIGH\n");
             avr->timer_data[reg_type_timer(type)].tmp = val;
+            printf("tmp = %d\n", avr->timer_data[reg_type_timer(type)].tmp);
             break;
 
         default:

@@ -13,7 +13,7 @@ void test_8bit_timer_output(void) {
 }
 
 int main(int argc, char **argv) {
-    test_8bit_timer_interrupts();
+    // test_8bit_timer_interrupts();
     test_8bit_timer_output();
     return 0;
 }

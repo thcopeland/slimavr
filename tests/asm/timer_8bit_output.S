@@ -145,14 +145,9 @@ test_phase_correct_pwm:
     sts OCR0B+0x20, r17
     sts TCCR0A+0x20, r18
     sts TCCR0B+0x20, r19
+
     wait 30
-    sbis PORTG, 5
-    jmp fail
-    wait 10
-    sbis PORTG, 5
-    jmp fail
-    wait 10
-    sbis PORTG, 5
+    sbic PORTG, 5
     jmp fail
     wait 10
     sbic PORTG, 5
@@ -166,9 +161,16 @@ test_phase_correct_pwm:
     wait 10
     sbis PORTG, 5
     jmp fail
-    wait 10
+    wait 15
     sbic PORTG, 5
     jmp fail
+    wait 5
+    sbis PORTG, 5
+    jmp fail
+    wait 10
+    sbis PORTG, 5
+    jmp fail
+
     reset_t0
     sts status, r1
 

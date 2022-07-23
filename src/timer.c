@@ -51,6 +51,10 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
         if (((++state->prescale_clock) & mask) != 0) return;
     }
 
+    uint16_t ocra = state->ocra_low | (tmr->resolution > 8 ? state->ocra_high << 8 : 0),
+             ocrb = state->ocrb_low | (tmr->resolution > 8 ? state->ocrb_high << 8 : 0),
+             ocrc = state->ocrc_low | (tmr->resolution > 8 ? state->ocrc_high << 8 : 0);
+
     switch (wgm) {
         case WGM_RESERVED:
             return;
@@ -68,7 +72,7 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
             break;
         case WGM_CLEAR_ON_COMPARE_OCRA:
             sync = clk;
-            top = get_timer_reg(avr, tmr, tmr->reg_ocra);
+            top = ocra;
             ovf = (1 << tmr->resolution) - 1;
             com_table = tmr->com_non_pwm_table;
             break;
@@ -97,7 +101,7 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
             com_table = tmr->com_fast_pwm_table;
             break;
         case WGM_FAST_PWM_OCRA:
-            top = get_timer_reg(avr, tmr, tmr->reg_ocra);
+            top = ocra;
             sync = 0;
             ovf = top;
             com_table = tmr->com_fast_pwm_table;
@@ -130,7 +134,7 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
             com_table = tmr->com_phase_pwm_table;
             break;
         case WGM_PHASE_PWM_OCRA:
-            top = get_timer_reg(avr, tmr, tmr->reg_ocra);
+            top = ocra;
             sync = top;
             rev = top;
             ovf = 0;
@@ -144,7 +148,7 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
             com_table = tmr->com_phase_pwm_table;
             break;
         case WGM_PHASE_FREQ_PWM_OCRA:
-            top = get_timer_reg(avr, tmr, tmr->reg_ocra);
+            top = ocra;
             sync = 0;
             rev = top;
             ovf = 0;
@@ -152,20 +156,31 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
             break;
     }
 
-    if (sync == clk) { // TODO actually use buffers
-        // avr->reg[tmr->reg_ocra] = state->ocral_buff;
-        // avr->reg[tmr->reg_ocra+1] = state->ocrah_buff;
-        //
-        // // TODO are there ever few than 2 comparators?
-        // if (tmr->comparators > 1) {
-        //     avr->reg[tmr->reg_ocrb] = state->ocrbl_buff;
-        //     avr->reg[tmr->reg_ocrb+1] = state->ocrbh_buff;
-        //
-        //     if (tmr->comparators > 2) {
-        //         avr->reg[tmr->reg_ocrc] = state->ocrcl_buff;
-        //         avr->reg[tmr->reg_ocrc+1] = state->ocrch_buff;
-        //     }
-        // }
+    if (sync == clk) {
+        uint16_t prev_ocra = ocra;
+        ocra = state->ocra_low = avr->reg[tmr->reg_ocra];
+        if (tmr->resolution > 8) {
+            state->ocra_high = avr->reg[tmr->reg_ocra+1];
+            ocra |= state->ocra_high << 8;
+        }
+        if (prev_ocra == rev) rev = ocra;
+
+        // TODO are there ever few than 2 comparators?
+        if (tmr->comparators > 1) {
+            ocrb = state->ocrb_low = avr->reg[tmr->reg_ocrb];
+            if (tmr->resolution > 8) {
+                state->ocrb_high = avr->reg[tmr->reg_ocrb+1];
+                ocrb |= state->ocrb_high << 8;
+            }
+
+            if (tmr->comparators > 2) {
+                ocrc = state->ocrc_low = avr->reg[tmr->reg_ocrc];
+                if (tmr->resolution > 8) {
+                    state->ocrc_high = avr->reg[tmr->reg_ocrc+1];
+                    ocrc |= state->ocrc_high << 8;
+                }
+            }
+        }
     }
 
     coma = com_table[(comvals>>6)];
@@ -180,11 +195,11 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
         case WGM_FAST_PWM_ICR:
         case WGM_FAST_PWM_OCRA:
             if (coma != COM_DISCONNECTED) {
-                if (avr->reg[tmr->reg_ocra] == 0) {
+                if (ocra == 0) {
                     if (clk == 0) avr->reg[tmr->reg_oca] |= tmr->msk_oca;
                     else avr->reg[tmr->reg_oca] &= ~tmr->msk_oca;
                     coma = COM_SPECIAL;
-                } else if (avr->reg[tmr->reg_ocra] == top) {
+                } else if (ocra == top) {
                     if (coma == COM_INVERTING) avr->reg[tmr->reg_oca] |= tmr->msk_oca;
                     else avr->reg[tmr->reg_oca] &= ~tmr->msk_oca;
                     coma = COM_SPECIAL;
@@ -192,11 +207,11 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
             }
 
             if (comb != COM_DISCONNECTED) {
-                if (avr->reg[tmr->reg_ocrb] == 0) {
+                if (ocrb == 0) {
                     if (clk == 0) avr->reg[tmr->reg_ocb] |= tmr->msk_ocb;
                     else avr->reg[tmr->reg_ocb] &= ~tmr->msk_ocb;
                     comb = COM_SPECIAL;
-                } else if (avr->reg[tmr->reg_ocrb] == top) {
+                } else if (ocrb == top) {
                     if (comb == COM_INVERTING) avr->reg[tmr->reg_ocb] |= tmr->msk_ocb;
                     else avr->reg[tmr->reg_ocb] &= ~tmr->msk_ocb;
                     comb = COM_SPECIAL;
@@ -204,11 +219,11 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
             }
 
             if (comc != COM_DISCONNECTED) {
-                if (avr->reg[tmr->reg_ocrc] == 0) {
+                if (ocrc == 0) {
                     if (clk == 0) avr->reg[tmr->reg_occ] |= tmr->msk_occ;
                     else avr->reg[tmr->reg_occ] &= ~tmr->msk_occ;
                     comc = COM_SPECIAL;
-                } else if (avr->reg[tmr->reg_ocrc] == top) {
+                } else if (ocrc == top) {
                     if (comc == COM_INVERTING) avr->reg[tmr->reg_occ] |= tmr->msk_occ;
                     else avr->reg[tmr->reg_occ] &= ~tmr->msk_occ;
                     comc = COM_SPECIAL;
@@ -222,32 +237,32 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
         case WGM_PHASE_PWM_OCRA:
         case WGM_PHASE_FREQ_PWM_ICR:
         case WGM_PHASE_FREQ_PWM_OCRA:
-            if ((avr->reg[tmr->reg_ocra] == 0 && (coma == COM_NON_INVERTING || coma == COM_CLEAR_UP_SET_DOWN)) ||
-                (avr->reg[tmr->reg_ocra] == top && (coma == COM_INVERTING || coma == COM_SET_UP_CLEAR_DOWN))) {
+            if ((ocra == 0 && (coma == COM_NON_INVERTING || coma == COM_CLEAR_UP_SET_DOWN)) ||
+                (ocra == top && (coma == COM_INVERTING || coma == COM_SET_UP_CLEAR_DOWN))) {
                 avr->reg[tmr->reg_oca] &= ~tmr->msk_oca;
                 coma = COM_SPECIAL;
-            } else if ((avr->reg[tmr->reg_ocra] == 0 && (coma == COM_INVERTING || coma == COM_SET_UP_CLEAR_DOWN)) ||
-                (avr->reg[tmr->reg_ocra] == top && (coma == COM_NON_INVERTING || coma == COM_CLEAR_UP_SET_DOWN))) {
+            } else if ((ocra == 0 && (coma == COM_INVERTING || coma == COM_SET_UP_CLEAR_DOWN)) ||
+                (ocra == top && (coma == COM_NON_INVERTING || coma == COM_CLEAR_UP_SET_DOWN))) {
                 avr->reg[tmr->reg_oca] |= tmr->msk_oca;
                 coma = COM_SPECIAL;
             }
 
-            if ((avr->reg[tmr->reg_ocrb] == 0 && (comb == COM_NON_INVERTING || comb == COM_CLEAR_UP_SET_DOWN)) ||
-                (avr->reg[tmr->reg_ocrb] == top && (comb == COM_INVERTING || comb == COM_SET_UP_CLEAR_DOWN))) {
+            if ((ocrb == 0 && (comb == COM_NON_INVERTING || comb == COM_CLEAR_UP_SET_DOWN)) ||
+                (ocrb == top && (comb == COM_INVERTING || comb == COM_SET_UP_CLEAR_DOWN))) {
                 avr->reg[tmr->reg_ocb] &= ~tmr->msk_ocb;
                 comb = COM_SPECIAL;
-            } else if ((avr->reg[tmr->reg_ocrb] == 0 && (comb == COM_INVERTING || comb == COM_SET_UP_CLEAR_DOWN)) ||
-                (avr->reg[tmr->reg_ocrb] == top && (comb == COM_NON_INVERTING || comb == COM_CLEAR_UP_SET_DOWN))) {
+            } else if ((ocrb == 0 && (comb == COM_INVERTING || comb == COM_SET_UP_CLEAR_DOWN)) ||
+                (ocrb == top && (comb == COM_NON_INVERTING || comb == COM_CLEAR_UP_SET_DOWN))) {
                 avr->reg[tmr->reg_ocb] |= tmr->msk_ocb;
                 comb = COM_SPECIAL;
             }
 
-            if ((avr->reg[tmr->reg_ocrc] == 0 && (comc == COM_NON_INVERTING || comc == COM_CLEAR_UP_SET_DOWN)) ||
-                (avr->reg[tmr->reg_ocrc] == top && (comc == COM_INVERTING || comc == COM_SET_UP_CLEAR_DOWN))) {
+            if ((ocrc == 0 && (comc == COM_NON_INVERTING || comc == COM_CLEAR_UP_SET_DOWN)) ||
+                (ocrc == top && (comc == COM_INVERTING || comc == COM_SET_UP_CLEAR_DOWN))) {
                 avr->reg[tmr->reg_occ] &= ~tmr->msk_occ;
                 comc = COM_SPECIAL;
-            } else if ((avr->reg[tmr->reg_ocrc] == 0 && (comc == COM_INVERTING || comc == COM_SET_UP_CLEAR_DOWN)) ||
-                (avr->reg[tmr->reg_ocrc] == top && (comc == COM_NON_INVERTING || comc == COM_CLEAR_UP_SET_DOWN))) {
+            } else if ((ocrc == 0 && (comc == COM_INVERTING || comc == COM_SET_UP_CLEAR_DOWN)) ||
+                (ocrc == top && (comc == COM_NON_INVERTING || comc == COM_CLEAR_UP_SET_DOWN))) {
                 avr->reg[tmr->reg_occ] |= tmr->msk_occ;
                 comc = COM_SPECIAL;
             }
@@ -269,7 +284,7 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
         avr->reg[tmr->reg_tifr] |= tmr->msk_tovf;
     }
 
-    if (clk == avr->reg[tmr->reg_ocra]) {
+    if (clk == ocra) {
         avr->reg[tmr->reg_tifr] |= tmr->msk_ocfa;
 
         if (coma != COM_DISCONNECTED && (clk != top || coma == COM_TOGGLE || coma == COM_CLEAR || coma == COM_SET)) {
@@ -286,7 +301,7 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
         }
     }
 
-    if (tmr->comparators > 1 && clk == avr->reg[tmr->reg_ocrb]) {
+    if (tmr->comparators > 1 && clk == ocrb) {
         avr->reg[tmr->reg_tifr] |= tmr->msk_ocfb;
 
         if (comb != COM_DISCONNECTED && (clk != top || comb == COM_TOGGLE || comb == COM_CLEAR || comb == COM_SET)) {
@@ -303,7 +318,7 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
         }
     }
 
-    if (tmr->comparators > 2 && clk == avr->reg[tmr->reg_ocrc]) {
+    if (tmr->comparators > 2 && clk == ocrc) {
         avr->reg[tmr->reg_tifr] |= tmr->msk_ocfc;
 
         if (comc != COM_DISCONNECTED && (clk != top || comc == COM_TOGGLE || comc == COM_CLEAR || comc == COM_SET)) {
