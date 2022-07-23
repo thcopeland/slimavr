@@ -16,9 +16,9 @@ test_reserved:
   ldi r16, 42
   sts 0x1ff, r16
   lds r17, 0x1ff
-  sts status, r17
   cpi r17, 0xff
-  brne fail
+  breq test_clear_on_set
+  jmp fail
 
 test_clear_on_set:
   ldi r16, 3

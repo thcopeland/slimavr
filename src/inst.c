@@ -769,29 +769,19 @@ static void sim_access(struct avr *avr, uint16_t ptr, uint8_t disp, uint8_t reg,
     // set or load the value at the address
     if (opts & 0x4) {
         if (addr+disp < avr->model.regsize) {
+            avr_set_reg(avr, addr+disp, avr->reg[reg]);
+        } else {
             avr->pending_inst.type = AVR_PENDING_COPY;
             avr->pending_inst.dst = addr+disp;
             avr->pending_inst.src = reg;
-        } else {
-            // TODO: do this right, this is logically stupid
-            if (addr+disp < avr->model.regsize) {
-                avr_set_reg(avr, addr+disp, avr->reg[reg]);
-            } else {
-                avr->mem[addr+disp] = avr->reg[reg];
-            }
         }
     } else {
         if (addr+disp < avr->model.regsize) {
+            avr->reg[reg] = avr_get_reg(avr, addr+disp);
+        } else {
             avr->pending_inst.type = AVR_PENDING_COPY;
             avr->pending_inst.dst = reg;
             avr->pending_inst.src = addr+disp;
-        } else {
-            // TODO
-            if (addr+disp < avr->model.regsize) {
-                avr->reg[reg] = avr_get_reg(avr, addr+disp);
-            } else {
-                avr->reg[reg] = avr->mem[addr+disp];
-            }
         }
     }
 
@@ -851,18 +841,9 @@ void inst_lds(struct avr *avr, uint16_t inst) {
         avr->error = CPU_INVALID_RAM_ADDRESS;
         avr->status = CPU_STATUS_CRASHED;
     } else {
-        if (addr < avr->model.regsize) {
-            avr->pending_inst.type = AVR_PENDING_COPY;
-            avr->pending_inst.dst = dst;
-            avr->pending_inst.src = addr;
-        } else {
-            // TODO fix me
-            if (addr < avr->model.regsize) {
-                avr->reg[dst] = avr_get_reg(avr, addr);
-            } else {
-                avr->reg[dst] = avr->mem[addr];
-            }
-        }
+        avr->pending_inst.type = AVR_PENDING_COPY;
+        avr->pending_inst.dst = dst;
+        avr->pending_inst.src = addr;
         avr->pc += 4;
         avr->progress = 1;
         avr->status = CPU_STATUS_COMPLETING;
@@ -913,17 +894,9 @@ void inst_sts(struct avr *avr, uint16_t inst) {
         avr->error = CPU_INVALID_RAM_ADDRESS;
         avr->status = CPU_STATUS_CRASHED;
     } else {
-        if (addr < avr->model.regsize) {
-            avr->pending_inst.type = AVR_PENDING_COPY;
-            avr->pending_inst.dst = addr;
-            avr->pending_inst.src = src;
-        } else {
-            if (addr < avr->model.regsize) {
-                avr_set_reg(avr, addr, avr->reg[src]);
-            } else {
-                avr->mem[addr] = avr->reg[src];
-            }
-        }
+        avr->pending_inst.type = AVR_PENDING_COPY;
+        avr->pending_inst.dst = addr;
+        avr->pending_inst.src = src;
         avr->pc += 4;
         avr->progress = 1;
         avr->status = CPU_STATUS_COMPLETING;
