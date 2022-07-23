@@ -1,14 +1,14 @@
 SRC				= src
 OBJ 			= obj
 TEST			= tests
-DEFS			= -DDEBUG
+DEFS			= #-DDEBUG
 CFLAGS		= -O2 -flto -Wall -Wextra
 LDLIBS		= -lm
 
 src_models 		= $(wildcard $(SRC)/models/*.c)
 src_models_o 	= $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(src_models))
-src		 		= $(wildcard $(SRC)/*.c)
-src_o 			= $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(src))
+src		 				= $(wildcard $(SRC)/*.c)
+src_o 				= $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(src))
 
 all: objdirs libslimavr.a
 
