@@ -1,7 +1,7 @@
 SRC				= src
 OBJ 			= obj
 TEST			= tests
-DEFS			= #-DDEBUG
+DEFS			= # -DDEBUG
 CFLAGS		= -O2 -flto -Wall -Wextra
 LDLIBS		= -lm
 
@@ -25,7 +25,7 @@ $(OBJ)/%.o: $(SRC)/%.c
 	$(CC) $(DEFS) $(CFLAGS) $^ -c -o $@
 
 test: libslimavr.a .FORCE
-	make -C $(TEST) run
+	make -j4 -C $(TEST) run
 
 clean:
 	rm -f $(src_models_o) $(src_o)

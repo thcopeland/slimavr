@@ -117,48 +117,54 @@ static inline void avr_exec(struct avr *avr) {
     avr_dispatch(avr, inst_l, inst_h);
 }
 
+static inline void avr_resolve_pending(struct avr *avr) {
+    if (avr->pending_inst.type == AVR_PENDING_COPY) {
+        if (avr->pending_inst.dst < avr->model.regsize && avr->pending_inst.src < avr->model.regsize) {
+            avr_set_reg(avr, avr->pending_inst.dst, avr_get_reg(avr, avr->pending_inst.src));
+        } else if (avr->pending_inst.dst < avr->model.regsize) {
+            avr_set_reg(avr, avr->pending_inst.dst, avr->mem[avr->pending_inst.src]);
+        } else if (avr->pending_inst.src < avr->model.regsize) {
+            avr->mem[avr->pending_inst.dst] = avr_get_reg(avr, avr->pending_inst.src);
+        } else {
+            // not possible within the AVR instruction set but ok
+            LOG("*** unexpected memory to memory copy ***\n");
+            avr->mem[avr->pending_inst.dst] = avr->mem[avr->pending_inst.src];
+        }
+        avr->pending_inst.type = AVR_PENDING_NONE;
+    }
+}
+
 void avr_step(struct avr *avr) {
-    if (avr->status == CPU_STATUS_CRASHED) {
-        return;
+    switch (avr->status) {
+        case CPU_STATUS_NORMAL:
+            avr_exec(avr);
+            break;
+
+        case CPU_STATUS_CRASHED:
+            return;
+
+        case CPU_STATUS_COMPLETING:
+            LOG("*** continuing last instruction (%d) ***\n", avr->progress);
+            avr->progress--;
+            if (avr->progress <= 0) {
+                avr_resolve_pending(avr);
+                avr->status = CPU_STATUS_NORMAL;
+            }
+            break;
+
+        case CPU_STATUS_INTERRUPTING:
+            LOG("*** responding to interrupt (%d) ***\n", avr->progress);
+            avr->progress--;
+            if (avr->progress <= 0) {
+                avr->status = CPU_STATUS_NORMAL;
+            }
+            break;
+
+        case CPU_STATUS_IDLE:
+            break;
     }
 
     avr_update(avr);
-
-    if (avr->status == CPU_STATUS_COMPLETING) {
-        LOG("*** continuing last instruction (%d) ***\n", avr->progress);
-        avr->progress--;
-        if (avr->progress <= 0) {
-            if (avr->pending_inst.type == AVR_PENDING_COPY) {
-                if (avr->pending_inst.dst < avr->model.regsize && avr->pending_inst.src < avr->model.regsize) {
-                    avr_set_reg(avr, avr->pending_inst.dst, avr_get_reg(avr, avr->pending_inst.src));
-                } else if (avr->pending_inst.dst < avr->model.regsize) {
-                    avr_set_reg(avr, avr->pending_inst.dst, avr->mem[avr->pending_inst.src]);
-                } else if (avr->pending_inst.src < avr->model.regsize) {
-                    avr->mem[avr->pending_inst.dst] = avr_get_reg(avr, avr->pending_inst.src);
-                } else {
-                    // not possible within the AVR instruction set but ok
-                    LOG("*** unexpected memory to memory copy ***\n");
-                    avr->mem[avr->pending_inst.dst] = avr->mem[avr->pending_inst.src];
-                }
-                avr->pending_inst.type = AVR_PENDING_NONE;
-            }
-            avr->status = CPU_STATUS_NORMAL;
-        }
-        return;
-    }
-
-    if (avr->status == CPU_STATUS_INTERRUPTING) {
-        LOG("*** responding to interrupt (%d) ***\n", avr->progress);
-        avr->progress--;
-        if (avr->progress <= 0) {
-            avr->status = CPU_STATUS_NORMAL;
-        }
-        return;
-    }
-
-    if (avr->status == CPU_STATUS_NORMAL) {
-        avr_exec(avr);
-    }
 }
 
 // map between register type and timer index

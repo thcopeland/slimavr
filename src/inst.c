@@ -1020,7 +1020,8 @@ void inst_nop(struct avr *avr, uint16_t inst) {
 void inst_sleep(struct avr *avr, uint16_t inst) {
     (void) inst;
     LOG("sleep\n");
-    avr->status = CPU_STATUS_SLEEPING;
+    // this is woefully incomplete but good enough for now
+    avr->status = CPU_STATUS_IDLE;
     avr->pc += 2;
 }
 
