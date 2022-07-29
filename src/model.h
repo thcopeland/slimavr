@@ -2,7 +2,6 @@
 #define MODEL_H
 
 #include <stdint.h>
-#include "port.h"
 #include "timer.h"
 
 enum avr_register_type {
@@ -78,10 +77,6 @@ struct avr_model {
 
     // important interrupt vectors
     uint32_t vec_spmrdy;        // store program memory completed
-
-    // general purpose IO information
-    uint16_t port_count;
-    const struct avr_port *ports;
 
     // timers
     uint8_t timer_count;

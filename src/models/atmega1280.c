@@ -1,25 +1,10 @@
 #include "../model.h"
 
-static struct avr_port ports[] = {
-    { .reg_dd = 0x021, .reg_port = 0x022, .reg_pin = 0x020 }, // port A
-    { .reg_dd = 0x024, .reg_port = 0x025, .reg_pin = 0x023 }, // port B
-    { .reg_dd = 0x027, .reg_port = 0x028, .reg_pin = 0x026 }, // port C
-    { .reg_dd = 0x02a, .reg_port = 0x02b, .reg_pin = 0x029 }, // port D
-    { .reg_dd = 0x02d, .reg_port = 0x02e, .reg_pin = 0x02c }, // port E
-    { .reg_dd = 0x030, .reg_port = 0x031, .reg_pin = 0x02f }, // port F
-    { .reg_dd = 0x033, .reg_port = 0x034, .reg_pin = 0x032 }, // port G
-    { .reg_dd = 0x101, .reg_port = 0x102, .reg_pin = 0x100 }, // port H
-    { .reg_dd = 0x104, .reg_port = 0x105, .reg_pin = 0x103 }, // port J
-    { .reg_dd = 0x107, .reg_port = 0x108, .reg_pin = 0x106 }, // port K
-    { .reg_dd = 0x10a, .reg_port = 0x10b, .reg_pin = 0x109 }  // port L
-};
-
 static struct avr_timer timers[] = {
     {   // timer 0
         .type           = TIMER_REDUCED,
         .resolution     = 8,
         .comparators    = 2,
-        .sleep_mask     = 0xff, // TODO
         .wgm_table      = { WGM_NORMAL, WGM_PHASE_PWM_8BIT, WGM_CLEAR_ON_COMPARE_OCRA, WGM_FAST_PWM_8BIT, WGM_RESERVED, WGM_PHASE_PWM_OCRA, WGM_RESERVED, WGM_FAST_PWM_OCRA },
         .clock_src_table = { CS_DISABLED, CS_1, CS_8, CS_64, CS_256, CS_1024, CS_FALLING, CS_RISING },
         .com_non_pwm_table = { COM_DISCONNECTED, COM_TOGGLE, COM_CLEAR, COM_SET },
@@ -596,8 +581,6 @@ const struct avr_model MODEL_ATMEGA1280 = {
     .reg_spmcsr     = 0x57,
     .reg_mcucr      = 0x55,
     .vec_spmrdy     = 0xa0,
-    .port_count     = sizeof(ports)/sizeof(ports[0]),
-    .ports          = ports,
     .timer_count    = sizeof(timers)/sizeof(timers[0]),
     .timers         = timers,
     .regmap         = regmap

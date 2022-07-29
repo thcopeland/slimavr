@@ -81,7 +81,6 @@ struct avr_timer {
     enum avr_timer_type type;
     uint8_t resolution;     // number of bits of resolution (8 and 16 supported)
     uint8_t comparators;    // number of comparators (up to 3)
-    uint8_t sleep_mask;     // whether to continue during which sleep modes
 
     // various configuration tables
     enum avr_timer_wgm wgm_table[16];           // waveform generation settings
