@@ -134,76 +134,130 @@ status:             .byte 1
     jmp main
 .org OC1Aaddr
     jmp isr_loop
-.org OC0Aaddr
-    jmp t_oca
+.org OC5Baddr
+    jmp t_ocb
+.org OVF5addr
+    jmp t_ovf
 
-t_oca:
-    lds r16, TCNT0+0x20
-    in ZL, SPL
-    in ZH, SPH
-    ldd r17, Z+2
-    sts TCCR0B, r1
+t_ocb:
+    in r0, SREG
+    inc r22
+    out SREG, r0
+    reti
+
+t_ovf:
+    in r0, SREG
+    inc r21
+    out SREG, r0
     reti
 
 main:
+    clr r1
+    clr r20
+    clr r21
+    cli
+
+t_normal:
+    ldi r16, 1
+    sts status, r16
+    sts TCCR5A, r1
+    ldi r16, (1 << CS10)
+    sts TCCR5B, r16
+    sts TCNT5H, r1
+    sts TCNT5L, r1
+    ldi r16, (1 << TOIE5)
+    sts TIMSK5, r16
     sei
-;     ldi r16, 7
-;     ldi r17, (1 << OCIE0A)
-;     ldi r18, (1 << CS00)
-;     sts TCNT0+0x20, r1
-;     sts OCR0A+0x20, r16
-;     sts TCCR0A+0x20, r1
-;     sts TIMSK0, r17
-;     sts TCCR0B+0x20, r18
-; nops: ; 0x42
-;     nop ; 1
-;     nop ; 2
-;     nop ; 3
-;     nop ; 4
-;     nop ; 5
-;     nop ; 6
-;     nop ; 7
-; ; expected return address <--- 0x49
-;     nop
-;     nop
-; ; actual return address <----- 0x4b
-;     nop
-;     nop
-;     nop
-; ; at this point, r16=16, r17=0x4b
-;     ; x: rcall x
-    ldi r16, 45
-    sts OCR0A, r16
-    clr r16
-    lds r16, OCR0A ; 45
-    write_byte framebuffer, r16
+wait1:
+    inc r20
+    cpi r21, 3
+    brlo wait1
+check1:
+    cli
+    sts TCCR5B, r1
+    lds r16, TCNT5L
+    lds r17, TCNT5H
 
-    sti TCCR0A, (1<<WGM00)
-    sti TCCR0B, 0
-    ldi r16, 45
-    sts OCR0A, r16
-    clr r16
-    lds r16, OCR0A ; 45
-    write_byte framebuffer+DISPLAY_WIDTH, r16
 
-    ldi r16, 45
-    sts OCR5AH, r16
-    clr r16
-    lds r16, OCR5AH ; 0
-    write_byte framebuffer+2*DISPLAY_WIDTH, r16
+;  write_byte framebuffer, r16 ; 0x17
+;     write_byte framebuffer+DISPLAY_WIDTH, r17 ; 0x00
+;     write_byte framebuffer+2*DISPLAY_WIDTH, r20 ; 0xf9
+;     ldi r20, 0xaa
+;     write_byte framebuffer+3*DISPLAY_WIDTH, r20
 
-    ldi r16, 45
-    sts OCR5AH, r16
-    inc r16
+t_prescaled:
+    clr r20
+    clr r21
+    ldi r16, 2
+    sts status, r16
+    ldi r16, 0
+    sts TCCR5A, r16
+    ldi r16, (1 << CS51)
+    sts TCCR5B, r16
+    sts TCNT5H, r1
+    sts TCNT5L, r1
+    ldi r16, (1 << TOIE5)
+    sts TIMSK5, r16
+    sei
+wait2:
+    inc r20
+    cpi r21, 1
+    brlo wait2
+check2:
+    cli
+    sts TCCR5B, r1
+    lds r16, TCNT5L
+    lds r17, TCNT5H
+
+    ; write_byte framebuffer, r16 ; 0x03
+    ; write_byte framebuffer+DISPLAY_WIDTH, r17 ; 0x00
+    ; write_byte framebuffer+2*DISPLAY_WIDTH, r20 ; 0xff
+    ; ldi r20, 0xaa
+    ; write_byte framebuffer+3*DISPLAY_WIDTH, r20
+
+
+t_ctc:
+    clr r20
+    clr r21
+    clr r22
+    ldi r16, 3
+    sts status, r16
+    ldi r16, 0xff
+    sts TIFR5, r16
+    ldi r16, low(1234)
+    ldi r17, high(1234)
+    ldi r18, low(321)
+    ldi r19, high(321)
+    ldi r24, (1 << TOIE5) | (1 << OCIE5B)
+    ldi r25, (1 << WGM51)
+    ldi r26, (1 << CS50)
+    sts TCNT5H, r1
+    sts TCNT5L, r1
+    sts OCR5AH, r17
     sts OCR5AL, r16
-    clr r16
-    lds r16, OCR5AL ; 46
-    lds r16, OCR5AH ; 45
-    write_byte framebuffer+3*DISPLAY_WIDTH, r16
+    sts OCR5BH, r19
+    sts OCR5BL, r18
+    sts TIMSK5, r24
+    sts TCCR5A, r25
+    sts TCCR5B, r26
+    sei
+wait3:
+    inc r20
+    cpi r22, 5
+    brlo wait3
+check3:
+    cli
+    sts TCCR5B, r1
+    lds r16, TCNT5L
+    lds r17, TCNT5H
 
-    ; write_byte framebuffer+DISPLAY_WIDTH*2, r17 ; 0x4b
-    ; write_byte framebuffer+DISPLAY_WIDTH*4, r20
-    ; write_byte framebuffer+DISPLAY_WIDTH*6, r21
+
+    write_byte framebuffer, r16 ; 0x28
+    write_byte framebuffer+DISPLAY_WIDTH, r17 ; 0x01
+    write_byte framebuffer+2*DISPLAY_WIDTH, r20 ; 0x9a
+    ldi r20, 0xaa
+    write_byte framebuffer+3*DISPLAY_WIDTH, r20
+
 
 vga:
     ldi r18, 0xFF

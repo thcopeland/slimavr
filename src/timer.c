@@ -17,7 +17,7 @@ static inline uint16_t get_timer_reg(struct avr *avr, const struct avr_timer *tm
     uint16_t val = avr->reg[reg];
 
     if (tmr->resolution > 8) {
-        val |= (uint16_t) avr->reg[reg] >> 8;
+        val |= (uint16_t) avr->reg[reg+1] << 8;
     }
 
     return val;
