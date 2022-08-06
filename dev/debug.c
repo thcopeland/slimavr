@@ -2,7 +2,7 @@
 #include "src/slimavr.h"
 
 int main() {
-    struct avr *avr = avr_init(MODEL_ATMEGA1280);
+    struct avr *avr = avr_init(AVR_MODEL_ATMEGA1280);
     long duration = 60;
     if (avr_load_ihex(avr, "debug.S.hex") == 0) {
         for (long i = 0; i < duration; i++) {

@@ -758,7 +758,7 @@ static struct avr_register regmap[] = {
     { .type = REG_RESERVED }       // Reserved (0x1ff)
 };
 
-const struct avr_model MODEL_ATMEGA2560 = {
+const struct avr_model AVR_MODEL_ATMEGA2560 = {
     .romsize        = 256*1024,
     .regsize        = 512,
     .ramsize        = 8*1024,

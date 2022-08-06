@@ -3,9 +3,9 @@
 
 #include "avr.h"
 
-#define EFILE 1
-#define EFORMAT 2
-#define ECHECKSUM 3
+#define AVR_EFILE 1
+#define AVR_EFORMAT 2
+#define AVR_ECHECKSUM 3
 
 int avr_load_ihex(struct avr *avr, char *fname);
 

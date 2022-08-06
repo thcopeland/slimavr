@@ -86,7 +86,7 @@ struct avr_model {
     const struct avr_register *regmap;
 };
 
-extern const struct avr_model MODEL_ATMEGA1280;
-extern const struct avr_model MODEL_ATMEGA2560;
+extern const struct avr_model AVR_MODEL_ATMEGA1280;
+extern const struct avr_model AVR_MODEL_ATMEGA2560;
 
 #endif

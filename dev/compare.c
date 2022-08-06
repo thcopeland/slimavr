@@ -25,7 +25,7 @@ struct avr_t *simavr_init(char *fname) {
 }
 
 struct avr *slimavr_init(char *fname) {
-    struct avr *avr = avr_init(MODEL_ATMEGA1280);
+    struct avr *avr = avr_init(AVR_MODEL_ATMEGA1280);
     avr_load_ihex(avr, fname);
     return avr;
 }
