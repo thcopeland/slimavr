@@ -355,6 +355,11 @@ void avr_update_timers(struct avr *avr) {
     for (int i = 0; i < avr->model.timer_count; i++) {
         const struct avr_timer *tmr = avr->model.timers+i;
         uint8_t wgmidx, csidx, comvals;
+        uint8_t tccrb = avr->reg[tmr->reg_tccrb];
+
+        // quick exit (a little hacky but significantly improves performance)
+        if (tccrb == 0) continue;
+
         // TODO check sleep
         switch (tmr->type) {
             case TIMER_STANDARD:
@@ -377,9 +382,10 @@ uint32_t avr_find_timer_interrupt(struct avr *avr) {
         const struct avr_timer *tmr = avr->model.timers+i;
         // TODO check sleep, any special stuff
         uint8_t tifr = avr->reg[tmr->reg_tifr],
-                timsk = avr->reg[tmr->reg_timsk];
+                timsk = avr->reg[tmr->reg_timsk],
+                tccrb = avr->reg[tmr->reg_tccrb];
 
-        if (tifr == 0) continue;
+        if (tifr == 0 || tccrb == 0) continue;
 
         if ((tifr & tmr->msk_tovf) && (timsk & tmr->msk_toie)) {
             avr->reg[tmr->reg_tifr] &= ~tmr->msk_tovf;

@@ -72,12 +72,13 @@ def transform_file fname
     puts "};"
 end
 
-def def_matcher name, type, regexp
+def def_matcher name, type_src, regexp
     define_method name do |line|
         matches = line.match regexp
+        type = type_src.dup
 
         if matches
-            first, *rest = matches.to_a
+            first, *rest = matches.to_a.compact
 
             rest.each_with_index do |match, idx|
                 first.gsub! "$#{idx}", (match or "")

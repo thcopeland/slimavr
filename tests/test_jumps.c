@@ -18,8 +18,8 @@ void test_call_3b(void) {
 }
 
 int main(int argc, char **argv) {
-    test_jmp();
-    test_call_2b();
-    test_call_3b();
+    // test_jmp();
+    // test_call_2b();
+    // test_call_3b();
     return 0;
 }

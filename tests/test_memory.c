@@ -18,8 +18,8 @@ void test_registers(void) {
 }
 
 int main(int argc, char **argv) {
-    test_sram();
-    test_flash();
-    test_registers();
+    // test_sram();
+    // test_flash();
+    // test_registers();
     return 0;
 }

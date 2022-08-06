@@ -59,7 +59,7 @@ test_16bit_atomic:
   cpc r17, r19
   brne fail
   ldi r20, 42
-  sts OCR3AH, r20
+  sts OCR1AH, r20
   lds r19, OCR1AH
   lds r18, OCR1AL
   cp r16, r18

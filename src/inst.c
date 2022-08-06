@@ -33,6 +33,17 @@ static inline void set_sreg_sub(struct avr *avr, uint8_t a, uint8_t b, uint8_t c
     avr->reg[avr->model.reg_status] = status;
 }
 
+static inline void set_sreg_subc(struct avr *avr, uint8_t a, uint8_t b, uint8_t c) {
+    uint8_t status = avr->reg[avr->model.reg_status] & 0xc2;
+    status |= ((~a & b) | (b & c) | (~a & c)) >> 7;         // carry/borrow
+    status &= 0xfd | ((c == 0x00) << 1);                    // zero
+    status |= (c & 0x80) >> 5;                              // negative
+    status |= (((a & ~b & ~c) | (~a & b & c)) & 0x80) >> 4; // overflow
+    status |= (((status << 1) ^ status) & 0x08) << 1;       // sign
+    status |= (((~a & b) | (c & (~a | b))) & 0x08) << 2;    // half carry
+    avr->reg[avr->model.reg_status] = status;
+}
+
 static inline void set_sreg_logical(struct avr *avr, uint8_t val) {
     uint8_t status = avr->reg[avr->model.reg_status] & 0xe1;
     status |= (val == 0) << 1;                              // zero
@@ -142,7 +153,7 @@ void inst_sbc(struct avr *avr, uint16_t inst) {
             c = a - b - (avr->reg[avr->model.reg_status] & 0x01);
     avr->reg[dst] = c;
     LOG("sbc\tr%d, r%d\n", dst, src);
-    set_sreg_sub(avr, a, b, c);
+    set_sreg_subc(avr, a, b, c);
     avr->pc += 2;
 }
 
@@ -153,7 +164,7 @@ void inst_sbci(struct avr *avr, uint16_t inst) {
             diff = val - imm - (avr->reg[avr->model.reg_status] & 0x01);
     avr->reg[dst] = diff;
     LOG("sbci\tr%d, %d\n", dst, imm);
-    set_sreg_sub(avr, val, imm, diff);
+    set_sreg_subc(avr, val, imm, diff);
     avr->pc += 2;
 }
 
@@ -557,7 +568,7 @@ void inst_cpc(struct avr *avr, uint16_t inst) {
             b = avr->reg[reg2],
             c = a - b - (avr->reg[avr->model.reg_status] & 0x01);
     LOG("cpc\tr%d, r%d\n", reg1, reg2);
-    set_sreg_sub(avr, a, b, c);
+    set_sreg_subc(avr, a, b, c);
     avr->pc += 2;
 }
 

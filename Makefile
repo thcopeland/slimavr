@@ -1,7 +1,7 @@
 SRC				= src
 OBJ 			= obj
 TEST			= tests
-DEFS			= # -DDEBUG
+DEFS			= -DDEBUG
 CFLAGS		= -O2 -flto -Wall -Wextra
 LDLIBS		= -lm
 

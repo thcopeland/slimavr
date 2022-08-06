@@ -161,6 +161,7 @@ void avr_step(struct avr *avr) {
             break;
 
         case CPU_STATUS_IDLE:
+            LOG("*** sleeping ***\n");
             break;
     }
 
