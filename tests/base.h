@@ -10,12 +10,12 @@ void run_test(char *fname, long duration, struct avr_model model) {
     if (avr_load_ihex(avr, fname) == 0) {
         for (long i = 0; i < duration; i++) {
             avr_step(avr);
-            c++;
 
-            if (c > 0 || avr->reg[0x81]) c++;
-            fprintf(f1, "%lu\t%d\n", c, ((avr->mem[0x25] & 0x20) > 0) * 25);
-            fprintf(f3, "%lu\t%d\n", c, ((avr->mem[0x25] & 0x40) > 0) * 30);
-            fprintf(f2, "%lu\t%d\n", c, avr->mem[0x46]);
+            // c++;
+            // if (c > 0 || avr->reg[0x81]) c++;
+            // fprintf(f1, "%lu\t%d\n", c, ((avr->mem[0x25] & 0x20) > 0) * 25);
+            // fprintf(f3, "%lu\t%d\n", c, ((avr->mem[0x25] & 0x40) > 0) * 30);
+            // fprintf(f2, "%lu\t%d\n", c, avr->mem[0x46]);
 
             if (avr->status == CPU_STATUS_CRASHED) {
                 printf("cpu crashed (%d)\n", avr->error);

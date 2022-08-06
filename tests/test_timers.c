@@ -4,7 +4,7 @@
 
 void test_8bit_timer_interrupts(void) {
     printf("testing 8 bit timers (part 1)... ");
-    run_test("asm/timer_8bit_interrupts.hex", 450, MODEL_ATMEGA1280);
+    run_test("asm/timer_8bit_interrupts.hex", 7400, MODEL_ATMEGA1280);
 }
 
 void test_8bit_timer_output(void) {
@@ -25,8 +25,8 @@ void test_16bit_timer_output(void) {
 
 int main(int argc, char **argv) {
     test_8bit_timer_interrupts();
-    // test_8bit_timer_output();
-    // test_16bit_timer_interrupts();
-    // test_16bit_timer_output();
+    test_8bit_timer_output();
+    test_16bit_timer_interrupts();
+    test_16bit_timer_output();
     return 0;
 }

@@ -46,6 +46,7 @@ check1:
     cli
     sts TCCR0B+0x20, r1
     lds r16, TCNT0+0x20
+    cpi r16, 21
     brne fail1
     cpi r20, 122 ; should be 123
     brne fail1
