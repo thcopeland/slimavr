@@ -56,6 +56,7 @@ void flash_write_buff(struct avr *avr, uint32_t addr, uint8_t low, uint8_t high)
 }
 
 void flash_set_blb(struct avr *avr, uint8_t val) {
+    (void) val;
     // TODO support setting bootloader bits (requires changing (e)lpm )
     avr->status = CPU_STATUS_CRASHED;
     avr->error = CPU_UNSUPPORTED_INSTRUCTION;
