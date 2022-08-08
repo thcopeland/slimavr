@@ -12,7 +12,6 @@ void test_8bit_timer_output(void) {
     run_test("asm/timer_8bit_output.hex", 1450, AVR_MODEL_ATMEGA1280);
 }
 
-
 void test_16bit_timer_interrupts(void) {
     printf("testing 16 bit timers (part 1)... ");
     run_test("asm/timer_16bit_interrupts.hex", 800000, AVR_MODEL_ATMEGA1280);

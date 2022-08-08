@@ -641,17 +641,17 @@ void inst_branch(struct avr *avr, uint16_t inst) {
 }
 
 void inst_sbi(struct avr *avr, uint16_t inst) {
-    uint8_t reg = ((inst >> 3) & 0xf) + avr->model.io_offset,
+    uint8_t reg = ((inst >> 3) & 0x1f) + avr->model.io_offset,
             mask = 1 << (inst & 0x7);
-    avr->reg[reg] |= mask;
+    avr_set_reg(avr, reg, avr->reg[reg] | mask);
     LOG("sbi 0x%02x, %d\n", reg-avr->model.io_offset, inst & 0x7);
     avr->pc += 2;
 }
 
 void inst_cbi(struct avr *avr, uint16_t inst) {
-    uint8_t reg = ((inst >> 3) & 0xf) + avr->model.io_offset,
+    uint8_t reg = ((inst >> 3) & 0x1f) + avr->model.io_offset,
             mask = 1 << (inst & 0x7);
-    avr->reg[reg] &= ~mask;
+    avr_set_reg(avr, reg, avr->reg[reg] & ~mask);
     LOG("cbi 0x%02x, %d\n", reg-avr->model.io_offset, inst & 0x7);
     avr->pc += 2;
 }
