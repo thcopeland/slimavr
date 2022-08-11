@@ -104,6 +104,7 @@ static inline void avr_update(struct avr *avr) {
     avr->clock++;
 
     avr_update_timers(avr);
+    avr_update_eeprom(avr);
 
     avr_check_interrupts(avr);
 }
@@ -169,7 +170,7 @@ void avr_step(struct avr *avr) {
 }
 
 // map between register type and timer index
-#define reg_type_timer(type) (((int)type-4)/2)
+#define reg_type_timer(type) (((int)type-5)/2)
 
 // ensure that the mapping remains correct
 static_assert (reg_type_timer(REG_TIMER0_HIGH) == 0);
@@ -195,6 +196,7 @@ uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
         case REG_VALUE:
         case REG_UNSUPPORTED:
         case REG_CLEAR_ON_SET:
+        case REG_EEP_CONTROL:
             return avr->reg[reg];
 
         case REG_TIMER0_LOW:
@@ -233,6 +235,10 @@ void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
 
         case REG_CLEAR_ON_SET:
             avr->reg[reg] &= ~val;
+            break;
+
+        case REG_EEP_CONTROL:
+            avr_set_eeprom_reg(avr, reg, val);
             break;
 
         case REG_TIMER0_LOW:

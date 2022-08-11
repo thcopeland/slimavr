@@ -8,6 +8,7 @@ enum avr_register_type {
     REG_VALUE,          // register is accessed directly
     REG_RESERVED,       // always read 0xff
     REG_UNSUPPORTED,    // same as REG_VALUE
+    REG_EEP_CONTROL,    // EEPROM control register
     REG_CLEAR_ON_SET,   // a bit is cleared when 1 is written (eg TIFRn)
     REG_TIMER0_HIGH,    // atomic 16-bit access, high byte
     REG_TIMER0_LOW,     // atomic 16-bit access, low byte, triggers the 16-bit operation (use this for 8-bit too, eg OCRA0)
@@ -74,9 +75,14 @@ struct avr_model {
     uint16_t reg_status;
     uint16_t reg_spmcsr;
     uint16_t reg_mcucr;
+    uint16_t reg_eecr;
+    uint16_t reg_eear;
+    uint16_t msk_eear;
+    uint16_t reg_eedr;
 
     // important interrupt vectors
     uint32_t vec_spmrdy;        // store program memory completed
+    uint32_t vec_eerdy;         // EEPROM ready
 
     // timers
     uint8_t timer_count;

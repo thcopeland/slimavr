@@ -47,6 +47,7 @@ def transform_file fname
                 try_match_timer_high line or
                 try_match_timer_low line or
                 try_match_clear_on_set line or
+                try_match_eep_control line or
                 raise "unable to parse line #{idx+1}: #{line}"
             )
         end
@@ -90,11 +91,12 @@ def def_matcher name, type_src, regexp
     end
 end
 
-def_matcher :try_match_value, "REG_VALUE", /PORT[A-Z]|DDR[A-Z]|PIN[A-Z]|SREG|SPH|SPL|EINT|RAMPZ|SPMCSR|GPIOR\d+|GTCCR|ICR\d+[HL]?|TCNT\d+ |TCCR\d+[A-C]|TIMSK\d+|EIND|RAMPZ/
+def_matcher :try_match_value, "REG_VALUE", /PORT[A-Z]|DDR[A-Z]|PIN[A-Z]|SREG|SPH|SPL|EINT|RAMPZ|SPMCSR|GPIOR\d+|GTCCR|ICR\d+[HL]?|TCNT\d+ |TCCR\d+[A-C]|TIMSK\d+|EIND|RAMPZ|EEAR[HL]?|EEDR/
 def_matcher :try_match_reserved, "REG_RESERVED", /Reserved/
-def_matcher :try_match_unsupported, "REG_UNSUPPORTED", /UDR\d+|USART\d+|UCSR\d+[A-C]|TWAMR|TW[A-D]R|TWSR|ASSR|DIDR\d+|ADMUX|ADCSR[A-C]|ADC[HL]|XMCR[A-C]|PCMSK\d+|EICR[A-C]|PCICR|OSCCAL|CLKPR|WDTCSR|MCUCR|MCUSR|SMCR|OCDR|ADSR|ACSR|SP[DCS]R|EEAR[HL]|EE[DC]R|EIMSK|EIFR|PCIFR/
+def_matcher :try_match_unsupported, "REG_UNSUPPORTED", /UDR\d+|USART\d+|UCSR\d+[A-C]|TWAMR|TW[A-D]R|TWSR|ASSR|DIDR\d+|ADMUX|ADCSR[A-C]|ADC[HL]|XMCR[A-C]|PCMSK\d+|EICR[A-C]|PCICR|OSCCAL|CLKPR|WDTCSR|MCUCR|MCUSR|SMCR|OCDR|ADSR|ACSR|SP[DCS]R|EIMSK|EIFR|PCIFR/
 def_matcher :try_match_timer_high, "REG_TIMER$0_HIGH", /OCR(\d+)[A-C]H|TCNT(\d+)H/
 def_matcher :try_match_timer_low, "REG_TIMER$0_LOW", /OCR(\d+)[A-C]L|OCR(\d+)[A-C] |TCNT(\d+)L/
 def_matcher :try_match_clear_on_set, "REG_CLEAR_ON_SET", /TIFR\d+/
+def_matcher :try_match_eep_control, "REG_EEP_CONTROL", /EECR/
 
 check_args(ARGV) and transform_file(ARGV.first)

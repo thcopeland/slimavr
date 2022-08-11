@@ -12,6 +12,11 @@ void test_flash(void) {
     run_test("asm/flash.hex", 200, AVR_MODEL_ATMEGA1280);
 }
 
+void test_eeprom(void) {
+    printf("testing EEPROM...");
+    run_test("asm/eeprom.hex", 110000, AVR_MODEL_ATMEGA1280);
+}
+
 void test_registers(void) {
     printf("testing registers... ");
     run_test("asm/register.hex", 100, AVR_MODEL_ATMEGA1280);
@@ -20,6 +25,7 @@ void test_registers(void) {
 int main(int argc, char **argv) {
     test_sram();
     test_flash();
+    test_eeprom();
     test_registers();
     return 0;
 }

@@ -27,7 +27,6 @@ Slimavr is far from complete. At this point, it lacks
  - ICRn timer modes
  - Sleep modes (IDLE mode partially supported)
  - Watchdog timer
- - EEPROM access
  - ADC simulation
  - `xch`, `las`, `lac`, `lat`, `break`, and `wdr` instructions
  - and more!
