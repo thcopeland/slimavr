@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     }
     free_ihex_chunks(chunks);
 
-    const long duration = 100000;
+    const long duration = 300000;
 
     for (long i = 0; i < duration; i++) {
         int pc = avr->pc;
@@ -33,8 +33,8 @@ int main(int argc, char **argv) {
         }
     }
 
-    printf("r16 = %d\n", avr->data[16]);
-    printf("r20 = %d\n", avr->data[20]);
+    // printf("r16 = %d\n", avr->data[16]);
+    // printf("r20 = %d\n", avr->data[20]);
 
     if (avr->data[0x242] != 0) {
         printf("fail (%d)\n", avr->data[0x242]);

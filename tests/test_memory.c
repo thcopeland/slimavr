@@ -14,7 +14,7 @@ void test_flash(void) {
 
 void test_eeprom(void) {
     printf("testing EEPROM...");
-    run_test("asm/eeprom.hex", 110000, AVR_MODEL_ATMEGA1280);
+    run_test("asm/eeprom.hex", 250000, AVR_MODEL_ATMEGA1280);
 }
 
 void test_registers(void) {

@@ -39,6 +39,7 @@ static void alloc_avr_memory(struct avr *avr) {
         avr->rom = avr->mem + rom_offset;
         avr->eep = avr->mem + eep_offset;
         memset(avr->reg, 0, avr->model.regsize);
+        memset(avr->eep, 0xff, avr->model.eepsize);
     }
 
     avr->flash_pgbuff = NULL;
@@ -238,7 +239,7 @@ void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
             break;
 
         case REG_EEP_CONTROL:
-            avr_set_eeprom_reg(avr, reg, val);
+            avr_set_eeprom_reg(avr, reg, val, 0xff);
             break;
 
         case REG_TIMER0_LOW:
@@ -262,5 +263,18 @@ void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
 
         default:
             assert(0); // should be comprehensive
+    }
+}
+
+void avr_set_reg_bits(struct avr *avr, uint16_t reg, uint8_t val, uint8_t mask) {
+    enum avr_register_type type = avr->model.regmap[reg].type;
+
+    switch (type) {
+        case REG_EEP_CONTROL:
+            avr_set_eeprom_reg(avr, reg, val, mask);
+            break;
+
+        default:
+            avr_set_reg(avr, reg, (avr->mem[reg] & ~mask) | (val & mask));
     }
 }

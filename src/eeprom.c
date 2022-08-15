@@ -8,15 +8,15 @@ void avr_init_eeprom_state(struct avr_eeprom_state *eep) {
   eep->status = 0;
 }
 
-void avr_set_eeprom_reg(struct avr *avr, uint16_t addr, uint8_t val) {
-  val &= AVR_ECCR_MASK;
-  avr->mem[addr] = val;
+void avr_set_eeprom_reg(struct avr *avr, uint16_t addr, uint8_t val, uint8_t mask) {
+  uint16_t ctrl = ((avr->mem[addr] & ~mask) | (val & mask)) & AVR_ECCR_MASK;
+  avr->mem[addr] = ctrl;
 
-  if (val & AVR_ECCR_EEMPE) {
+  if (val & mask & AVR_ECCR_EEMPE) {
     avr->eeprom_data.status = 4;
   }
 
-  if ((val & AVR_ECCR_EEPE) && (avr->eeprom_data.status & 0x0f) > 0) {
+  if ((val & mask & AVR_ECCR_EEPE) && (avr->eeprom_data.status & 0x0f) > 0) {
     // write/erase EEPROM
     avr->eeprom_data.addr = avr->mem[avr->model.reg_eear];
     if (avr->model.eepsize > 255) {
@@ -24,22 +24,22 @@ void avr_set_eeprom_reg(struct avr *avr, uint16_t addr, uint8_t val) {
     }
     avr->eeprom_data.addr &= avr->model.msk_eear;
 
-    if (!(val & AVR_ECCR_EEPM0) && !(val & AVR_ECCR_EEPM1)) {
+    if (!(ctrl & AVR_ECCR_EEPM0) && !(ctrl & AVR_ECCR_EEPM1)) {
       // erase and write atomically
       avr->eeprom_data.progress = 54400;
       avr->eeprom_data.value = avr->mem[avr->model.reg_eedr];
-    } else if ((val & AVR_ECCR_EEPM0) && !(val & AVR_ECCR_EEPM1)) {
+    } else if ((ctrl & AVR_ECCR_EEPM0) && !(ctrl & AVR_ECCR_EEPM1)) {
       // erase only
       avr->eeprom_data.progress = 28800;
-      avr->eeprom_data.value = 0;
-    } else if (!(val & AVR_ECCR_EEPM0) && (val & AVR_ECCR_EEPM1)) {
+      avr->eeprom_data.value = 0xff;
+    } else if (!(ctrl & AVR_ECCR_EEPM0) && (ctrl & AVR_ECCR_EEPM1)) {
       // write only
       avr->eeprom_data.progress = 28800;
-      avr->eeprom_data.value = avr->mem[avr->model.reg_eedr];
+      avr->eeprom_data.value = avr->eep[avr->eeprom_data.addr] & avr->mem[avr->model.reg_eedr];
     } else {
       // reserved
     }
-  } else if ((val & AVR_ECCR_EERE) && (avr->eeprom_data.status & 0x0f)) {
+  } else if (val & mask & AVR_ECCR_EERE) {
     // read EEPROM (immediate)
     uint16_t addr = avr->mem[avr->model.reg_eear];
     if (avr->model.eepsize > 255) {
