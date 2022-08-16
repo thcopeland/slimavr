@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
     avr_init(avr);
     avr->frequency = 16000000;
     ihex_chunk_p chunks;
-    int chunk_count = read_ihex_chunks("tests/asm/eeprom.hex", &chunks);
+    int chunk_count = read_ihex_chunks("tests/asm/flash.hex", &chunks);
     avr->pc = 0;
     for (int i = 0; i < chunk_count; i++) {
         ihex_chunk_t chunk = chunks[i];
@@ -33,8 +33,10 @@ int main(int argc, char **argv) {
         }
     }
 
-    // printf("r16 = %d\n", avr->data[16]);
-    // printf("r20 = %d\n", avr->data[20]);
+    printf("r16 = %d\n", avr->data[16]);
+    printf("r17 = %d\n", avr->data[17]);
+    printf("r18 = %d\n", avr->data[18]);
+    printf("r19 = %d\n", avr->data[19]);
 
     if (avr->data[0x242] != 0) {
         printf("fail (%d)\n", avr->data[0x242]);

@@ -13,7 +13,7 @@ struct avr_eeprom_state {
   uint16_t progress;  // progress of EEPROM write (0 - complete)
   uint16_t addr;      // EEPROM write address
   uint8_t value;      // value to write to EEPROM
-  uint8_t status;     // [access window timer:4][interrupt:4]
+  uint8_t status;     // [interrupt:4][access window timer:4]
 };
 
 struct avr;

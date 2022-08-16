@@ -2,24 +2,32 @@
 #define FLASH_H
 
 #include <stdint.h>
-#include "avr.h"
+#include <stddef.h>
 
-#define AVR_SPM_SPIME 0x80
-#define AVR_SPM_RWWSB 0x40
-#define AVR_SPM_SIGRD 0x20
-#define AVR_SPM_RWWSRE 0x10
-#define AVR_SPM_BLBSET 0x08
-#define AVR_SPM_PGWRT 0x04
-#define AVR_SPM_PGERS 0x02
-#define AVR_SPM_SPMEN 0x01
+#define AVR_SPMCSR_SPMIE  0x80
+#define AVR_SPMCSR_RWWSB  0x40
+#define AVR_SPMCSR_SIGRD  0x20
+#define AVR_SPMCSR_RWWSRE 0x10
+#define AVR_SPMCSR_BLBSET 0x08
+#define AVR_SPMCSR_PGWRT  0x04
+#define AVR_SPMCSR_PGERS  0x02
+#define AVR_SPMCSR_SPMEN  0x01
 
-#define AVR_SPM_READY 0x80
-#define AVR_SPM_CLOCK 0x07
-#define AVR_SPM_TIMEOUT 4
+struct avr_flash_state {
+  uint8_t *buffer;    // internal page buffer
+  uint32_t addr;      // flash write address
+  uint16_t progress;  // progress of flash write/erase (0 - complete)
+  uint8_t operation;  // whether writing or erasing a flash page
+  uint8_t spm_mode;   // how to interpret a subsequent SPM instruction
+  uint8_t status;     // [interrupt:1][unused:3][access window timer:4]
+};
 
-void flash_erase_page(struct avr *avr, uint32_t addr);
-void flash_write_page(struct avr *avr, uint32_t addr);
-void flash_write_buff(struct avr *avr, uint32_t addr, uint8_t low, uint8_t high);
-void flash_set_blb(struct avr *avr, uint8_t val);
+struct avr;
+
+void avr_init_flash_state(struct avr_flash_state *flash, size_t buffsize);
+void avr_free_flash_state(struct avr_flash_state *flash);
+void avr_set_flash_reg(struct avr *avr, uint16_t addr, uint8_t val, uint8_t mask);
+void avr_exec_spm(struct avr *avr, uint16_t inst);
+void avr_update_flash(struct avr *avr);
 
 #endif

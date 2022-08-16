@@ -25,8 +25,8 @@ void avr_check_interrupts(struct avr *avr) {
         uint32_t vec = avr_find_timer_interrupt(avr);
         if (vec != 0xffffffff) {
             schedule_interrupt(avr, vec);
-        } else if ((avr->spm_status & 1) && (avr->reg[avr->model.reg_spmcsr] & 0x80)) { // check SPM ready
-            avr->spm_status &= ~1;
+        } else if (avr->flash_data.status & 0x80) { // check SPM ready
+            avr->flash_data.status &= ~0x80;
             schedule_interrupt(avr, avr->model.vec_spmrdy);
         } else if (avr->eeprom_data.status & 0xf0) { // check EEPROM ready
             avr->eeprom_data.status &= 0x0f;

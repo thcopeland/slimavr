@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "model.h"
 #include "eeprom.h"
+#include "flash.h"
 
 enum avr_error {
     CPU_INVALID_INSTRUCTION,
@@ -54,8 +55,7 @@ struct avr {
     struct avr_timerstate *timer_data;
     struct avr_pending_inst pending_inst;
     struct avr_eeprom_state eeprom_data;
-    uint8_t *flash_pgbuff;      // used for spm
-    uint8_t spm_status;         // spm state [delay (TODO):7][interrupt:1]
+    struct avr_flash_state flash_data;
 };
 
 /*

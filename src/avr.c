@@ -42,27 +42,25 @@ static void alloc_avr_memory(struct avr *avr) {
         memset(avr->eep, 0xff, avr->model.eepsize);
     }
 
-    avr->flash_pgbuff = NULL;
-    avr->timer_data = NULL;
+    avr_init_flash_state(&avr->flash_data, avr->model.flash_pgsize);
+    if (avr->flash_data.buffer == NULL) {
+        free(avr->mem);
+        avr->mem = NULL;
+        return;
+    }
 
-    avr->flash_pgbuff = malloc(avr->model.flash_pgsize);
-    if (avr->flash_pgbuff == NULL) goto nomem;
+    avr_init_eeprom_state(&avr->eeprom_data);
 
     avr->timer_data = malloc(sizeof(avr->timer_data[0])*avr->model.timer_count);
     if (avr->timer_data == NULL) {
-        goto nomem;
+        free(avr->mem);
+        free(avr->flash_data.buffer);
+        avr->mem = NULL;
     } else {
         for (int i = 0; i < avr->model.timer_count; i++) {
             timerstate_init(avr->timer_data+i);
         }
     }
-
-    return;
-
-nomem:
-    free(avr->mem);
-    free(avr->flash_pgbuff);
-    avr->mem = NULL;
 }
 
 struct avr *avr_init(struct avr_model model) {
@@ -94,8 +92,8 @@ struct avr *avr_init(struct avr_model model) {
 
 void avr_free(struct avr *avr) {
     if (avr) {
+        avr_free_flash_state(&avr->flash_data);
         free(avr->mem);
-        free(avr->flash_pgbuff);
         free(avr->timer_data);
         free(avr);
     }
@@ -106,6 +104,7 @@ static inline void avr_update(struct avr *avr) {
 
     avr_update_timers(avr);
     avr_update_eeprom(avr);
+    avr_update_flash(avr);
 
     avr_check_interrupts(avr);
 }
@@ -171,7 +170,7 @@ void avr_step(struct avr *avr) {
 }
 
 // map between register type and timer index
-#define reg_type_timer(type) (((int)type-5)/2)
+#define reg_type_timer(type) (((int)type-6)/2)
 
 // ensure that the mapping remains correct
 static_assert (reg_type_timer(REG_TIMER0_HIGH) == 0);
@@ -198,6 +197,7 @@ uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
         case REG_UNSUPPORTED:
         case REG_CLEAR_ON_SET:
         case REG_EEP_CONTROL:
+        case REG_SPM_CONTROL:
             return avr->reg[reg];
 
         case REG_TIMER0_LOW:
@@ -242,6 +242,10 @@ void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
             avr_set_eeprom_reg(avr, reg, val, 0xff);
             break;
 
+        case REG_SPM_CONTROL:
+            avr_set_flash_reg(avr, reg, val, 0xff);
+            break;
+
         case REG_TIMER0_LOW:
         case REG_TIMER1_LOW:
         case REG_TIMER2_LOW:
@@ -272,6 +276,10 @@ void avr_set_reg_bits(struct avr *avr, uint16_t reg, uint8_t val, uint8_t mask) 
     switch (type) {
         case REG_EEP_CONTROL:
             avr_set_eeprom_reg(avr, reg, val, mask);
+            break;
+
+        case REG_SPM_CONTROL:
+            avr_set_flash_reg(avr, reg, val, mask);
             break;
 
         default:

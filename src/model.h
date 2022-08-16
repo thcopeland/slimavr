@@ -9,6 +9,7 @@ enum avr_register_type {
     REG_RESERVED,       // always read 0xff
     REG_UNSUPPORTED,    // same as REG_VALUE
     REG_EEP_CONTROL,    // EEPROM control register
+    REG_SPM_CONTROL,    // SPM control register
     REG_CLEAR_ON_SET,   // a bit is cleared when 1 is written (eg TIFRn)
     REG_TIMER0_HIGH,    // atomic 16-bit access, high byte
     REG_TIMER0_LOW,     // atomic 16-bit access, low byte, triggers the 16-bit operation (use this for 8-bit too, eg OCRA0)
