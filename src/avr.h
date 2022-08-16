@@ -73,42 +73,18 @@ void avr_free(struct avr *avr);
  */
 void avr_step(struct avr *avr);
 
-/*
- * Read a register's value. For most registers, this is equivalent to reading
- * avr->reg directly, but a fair number have specialized behavior, including
- * changing CPU state. In most cases, you won't want to trigger these side
- * effects and should access avr->reg or avr->mem directly.
- *
- * Note: This is idempotent and used in the IN and LD* instruction implementations.
- *
- * Note: This interface may be changed or removed at some point.
- */
-uint8_t avr_get_reg(struct avr *avr, uint16_t reg);
 
 /*
- * Set a register's value. This will trigger the proper interrupts and any other
- * side effects. For some registers (eg IO), you should use this function, but
- * in general, it will be preferable to write avr->reg directly.
- *
- * This is faster than but equivalent to avr_set_reg_bits(avr, reg, val, 0xff).
- *
- * Note: This is idempotent and used in the OUT and ST* instructions implementations.
- *
- * Note: This interface may be changed or removed at some point.
+ * Read an IO register's value. This can be used for basic communication, but
+ * if you need more control, you should access avr->reg or avr->mem directly.
  */
-void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val);
+uint8_t avr_io_read(struct avr *avr, uint16_t reg);
+
 
 /*
- * Set a register's value, but only the bits specifed in the given mask are affected.
- * This is only useful for a few registers, such as EECR. This will trigger the
- * proper interrupts and any other side effects. In general, it will be preferable to
- * use avr_set_reg (which avr_set_reg_bits delegates most calls to anyway) or access
- * avr->reg directly.
- *
- * Note: This is idempotent and used in the SBI and CBI instructions implementations.
- *
- * Note: This interface may be changed or removed at some point.
+ * Write to an IO register. This can be used for basic communication, but
+ * if you need more control, you should access avr->reg or avr->mem directly.
  */
-void avr_set_reg_bits(struct avr *avr, uint16_t reg, uint8_t val, uint8_t mask);
+void avr_io_write(struct avr *avr, uint16_t reg, uint8_t val);
 
 #endif
