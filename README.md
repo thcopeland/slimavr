@@ -92,8 +92,8 @@ struct avr {
 If you want to modify IO registers, two helper functions are provided to ensure that the proper side effects are triggered. You should not use these for accessing buffered 16-bit registers, as this may overwrite the internal byte buffer, creating subtle bugs.
 
 ```c
-uint8_t avr_io_write(struct avr *avr, uint16_t reg);
-void avr_io_read(struct avr *avr, uint16_t reg, uint8_t val);
+uint8_t avr_io_read(struct avr *avr, uint16_t reg);
+void avr_io_write(struct avr *avr, uint16_t reg, uint8_t val);
 ```
 
 When you've finished with the device, use
