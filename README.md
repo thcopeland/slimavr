@@ -1,6 +1,6 @@
 ## Slimavr
 
-Slimavr is a slim, fast simulator for a subset of AVR microcontrollers. The name follows in the grand tradition established by [simulavr](https://www.nongnu.org/simulavr/) and [simavr](https://github.com/buserror/simavr).
+Slimavr is a slim, fast simulator for a subset of 8-bit AVR microcontrollers. The name follows in the grand tradition established by [simulavr](https://www.nongnu.org/simulavr/) and [simavr](https://github.com/buserror/simavr).
 
 Unlike these older projects, slimavr runs much faster than the AVR standard 16 MHz. On my two-core 2.6 GHz Intel i5-4300 laptop, it runs [AfterZhev](https://github.com/thcopeland/afterzhev) at around 27.5 MHz. In comparison, simavr runs at just over 3.0 MHz.
 
@@ -10,7 +10,7 @@ However, unless you need this sort of performance, you should use simavr. It is 
 
 Currently, the following devices are supported:
 
-- ATMega 1280/2560
+- ATmega 1280/2560
 
 Which is not very many. Neither is this support complete by any means. If your project needs some other MCU, please create an Issue or PR.
 
@@ -36,7 +36,7 @@ The features that are implemented, however, should be fairly accurate and comple
 
 ## Installation
 
-Download the latest version from the [Releases page](https://github.com/slimavr/armb/releases). Alternatively, clone the repository and run `./releases.sh` to create your own release.
+Download the latest version from the [releases page](https://github.com/thcopeland/slimavr/releases). Alternatively, clone the repository and run `./releases.sh` to create your own release.
 
 ## Usage
 
