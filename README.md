@@ -2,9 +2,9 @@
 
 Slimavr is a slim, fast simulator for a subset of 8-bit AVR microcontrollers. The name follows in the grand tradition established by [simulavr](https://www.nongnu.org/simulavr/) and [simavr](https://github.com/buserror/simavr).
 
-Unlike these older projects, slimavr runs much faster than the AVR standard 16 MHz. On my two-core 2.6 GHz Intel i5-4300 laptop, it runs [AfterZhev](https://github.com/thcopeland/afterzhev) at around 27.5 MHz. In comparison, simavr runs at just over 3.0 MHz.
+Unlike these older projects, slimavr is designed to run at or faster than the standard AVR 16 MHz. On my 2.6 GHz laptop it can achieve around 20 MHz.
 
-However, unless you need this sort of performance, you should use simavr. It is far more complete and stable. In fact, even if you do need slimavr's speed, I'd strongly recommend testing frequently with simavr (and a physical MCU) to ensure that things work properly.
+However, unless you need this sort of performance, you should use simavr or. It is far more complete and stable. In fact, even if you do need slimavr's speed, I'd strongly recommend testing frequently with simavr (better still, a physical MCU) to ensure that things work properly.
 
 ## Supported devices
 
@@ -19,7 +19,6 @@ Which is not very many. Neither is this support complete by any means. If your p
 Slimavr is far from complete. At this point, it lacks
 
  - Debugger support
- - VCD tracing
  - Fuse emulation
  - External interrupts
  - External timers
