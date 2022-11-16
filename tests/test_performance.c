@@ -10,6 +10,11 @@ void test_performance(void) {
         clock_t start = clock();
         while(avr->ram[0x42] == 0) {
             avr_step(avr);
+
+            if (avr->status == CPU_STATUS_CRASHED) {
+                printf("cpu crashed (%d)\n", avr->error);
+                break;
+            }
         }
         double elapsed = (double)(clock() - start) / CLOCKS_PER_SEC;
         printf("%.3f MHz\n", (double) avr->clock/elapsed/1000000);

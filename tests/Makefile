@@ -8,7 +8,7 @@ tests_ex = $(patsubst %.c, %.out, $(tests))
 all: asm $(tests_ex)
 
 asm: .FORCE
-	make -C asm
+	$(MAKE) -C asm
 
 %.out: %.c $(LDLIBS)
 	gcc $(CFLAGS) $^ $(LDLIBS) -o $@
