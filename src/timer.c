@@ -14,13 +14,7 @@ void timerstate_init(struct avr_timerstate *state) {
 }
 
 static inline uint16_t get_timer_reg(struct avr *avr, const struct avr_timer *tmr, uint16_t reg) {
-    uint16_t val = avr->reg[reg];
-
-    if (tmr->resolution > 8) {
-        val |= (uint16_t) avr->reg[reg+1] << 8;
-    }
-
-    return val;
+    return avr->reg[reg] | (tmr->resolution > 8 ? avr->reg[reg+1] << 8 : 0);
 }
 
 // must match avr_timer_cs order
@@ -165,27 +159,26 @@ static void timer_tick(struct avr *avr, const struct avr_timer *tmr, struct avr_
         }
         if (prev_ocra == rev) rev = ocra;
 
-        // TODO are there ever few than 2 comparators?
-        if (tmr->comparators > 1) {
-            ocrb = state->ocrb_low = avr->reg[tmr->reg_ocrb];
-            if (tmr->resolution > 8) {
-                state->ocrb_high = avr->reg[tmr->reg_ocrb+1];
-                ocrb |= state->ocrb_high << 8;
-            }
+        ocrb = state->ocrb_low = avr->reg[tmr->reg_ocrb];
+        if (tmr->resolution > 8) {
+            state->ocrb_high = avr->reg[tmr->reg_ocrb+1];
+            ocrb |= state->ocrb_high << 8;
+        }
 
-            if (tmr->comparators > 2) {
-                ocrc = state->ocrc_low = avr->reg[tmr->reg_ocrc];
-                if (tmr->resolution > 8) {
-                    state->ocrc_high = avr->reg[tmr->reg_ocrc+1];
-                    ocrc |= state->ocrc_high << 8;
-                }
+        if (tmr->comparators > 2) {
+            ocrc = state->ocrc_low = avr->reg[tmr->reg_ocrc];
+            if (tmr->resolution > 8) {
+                state->ocrc_high = avr->reg[tmr->reg_ocrc+1];
+                ocrc |= state->ocrc_high << 8;
             }
         }
     }
 
     coma = com_table[(comvals>>6)];
-    if (tmr->comparators > 1) comb = com_table[(comvals>>4) & 0x03];
-    if (tmr->comparators > 2) comc = com_table[(comvals>>2) & 0x03];
+    if (tmr->comparators > 1) {
+        comb = com_table[(comvals>>4) & 0x03];
+        if (tmr->comparators > 2) comc = com_table[(comvals>>2) & 0x03];
+    }
 
     // handle special cases (ocra/b/c == 0 or top)
     switch (wgm) {
@@ -382,10 +375,9 @@ uint32_t avr_find_timer_interrupt(struct avr *avr) {
         const struct avr_timer *tmr = avr->model.timers+i;
         // TODO check sleep, any special stuff
         uint8_t tifr = avr->reg[tmr->reg_tifr],
-                timsk = avr->reg[tmr->reg_timsk],
-                tccrb = avr->reg[tmr->reg_tccrb];
+                timsk = avr->reg[tmr->reg_timsk];
 
-        if (tifr == 0 || tccrb == 0) continue;
+        if (tifr == 0 || timsk == 0) continue;
 
         if ((tifr & tmr->msk_tovf) && (timsk & tmr->msk_toie)) {
             avr->reg[tmr->reg_tifr] &= ~tmr->msk_tovf;

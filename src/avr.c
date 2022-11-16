@@ -141,9 +141,6 @@ void avr_step(struct avr *avr) {
             avr_exec(avr);
             break;
 
-        case CPU_STATUS_CRASHED:
-            return;
-
         case CPU_STATUS_COMPLETING:
             LOG("*** continuing last instruction (%d) ***\n", avr->progress);
             avr->progress--;
@@ -164,6 +161,9 @@ void avr_step(struct avr *avr) {
         case CPU_STATUS_IDLE:
             LOG("*** sleeping ***\n");
             break;
+
+        case CPU_STATUS_CRASHED:
+            return;
     }
 
     avr_update(avr);

@@ -20,6 +20,7 @@ struct avr_flash_state {
   uint8_t operation;  // whether writing or erasing a flash page
   uint8_t spm_mode;   // how to interpret a subsequent SPM instruction
   uint8_t status;     // [interrupt:1][unused:3][access window timer:4]
+  uint8_t idle;       // if set, no flash checks or updates are performed
 };
 
 struct avr;

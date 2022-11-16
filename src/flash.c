@@ -32,6 +32,7 @@ void avr_init_flash_state(struct avr_flash_state *flash, size_t buffsize) {
     flash->operation = AVR_SPM_OP_NONE;
     flash->spm_mode = AVR_SPM_MODE_NONE;
     flash->status = 0;
+    flash->idle = 1;
 }
 
 void avr_free_flash_state(struct avr_flash_state *flash) {
@@ -45,6 +46,7 @@ void avr_set_flash_reg(struct avr *avr, uint16_t addr, uint8_t val, uint8_t mask
 
     if (val & mask & AVR_SPMCSR_SPMEN) {
         flash->status = 4;
+        flash->idle = 0;
 
         if ((val & mask & 0x3f) == (AVR_SPMCSR_SPMEN | AVR_SPMCSR_RWWSRE)) {
             flash->spm_mode = AVR_SPM_MODE_RWWSRE;
@@ -78,6 +80,8 @@ static void avr_flash_complete(struct avr *avr) {
 
             if (avr->mem[avr->model.reg_spmcsr] & AVR_SPMCSR_SPMIE) {
                 flash->status |= AVR_STATUS_INTERRUPT;
+            } else {
+                flash->idle = 1;
             }
         }
     } else if (flash->operation == AVR_SPM_OP_WRITE) {
@@ -92,6 +96,8 @@ static void avr_flash_complete(struct avr *avr) {
 
             if (avr->mem[avr->model.reg_spmcsr] & AVR_SPMCSR_SPMIE) {
                 flash->status |= AVR_STATUS_INTERRUPT;
+            } else {
+                flash->idle = 1;
             }
         }
     }
@@ -104,6 +110,7 @@ void avr_exec_spm(struct avr *avr, uint16_t inst) {
     struct avr_flash_state *flash = &avr->flash_data;
 
     if (avr->reg[avr->model.reg_spmcsr] & AVR_SPMCSR_SPMEN) {
+        flash->idle = 0;
         uint32_t pg_mask = avr->model.flash_pgsize - 1;
         pg_mask |= pg_mask >> 16;
         pg_mask |= pg_mask >> 8;
@@ -159,20 +166,23 @@ void avr_exec_spm(struct avr *avr, uint16_t inst) {
 void avr_update_flash(struct avr *avr) {
     struct avr_flash_state *flash = &avr->flash_data;
 
-    if (flash->progress > 0) {
-        flash->progress--;
-        if (flash->progress == 0) {
-            avr_flash_complete(avr);
+    if (!flash->idle) {
+        if (flash->progress > 0) {
+            flash->progress--;
+            if (flash->progress == 0) {
+                avr_flash_complete(avr);
+            }
         }
-    }
 
-    if ((flash->status & AVR_STATUS_TIMER) > 0) {
-        flash->status--;
-        if (flash->status == 0) {
-            flash->spm_mode = AVR_SPM_MODE_NONE;
+        if ((flash->status & AVR_STATUS_TIMER) > 0) {
+            flash->status--;
+            if (flash->status == 0) {
+                flash->spm_mode = AVR_SPM_MODE_NONE;
 
-            if (flash->operation == AVR_SPM_OP_NONE) {
-                avr->reg[avr->model.reg_spmcsr] &= ~(AVR_SPMCSR_SPMEN | AVR_SPMCSR_PGERS | AVR_SPMCSR_PGWRT);
+                if (flash->operation == AVR_SPM_OP_NONE) {
+                    flash->idle = 1;
+                    avr->reg[avr->model.reg_spmcsr] &= ~(AVR_SPMCSR_SPMEN | AVR_SPMCSR_PGERS | AVR_SPMCSR_PGWRT);
+                }
             }
         }
     }

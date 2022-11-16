@@ -1,7 +1,11 @@
 .include "m1280def.inc"
 .include "base.inc"
 
-.dseg
+; A simple but reasonably intense benchmark program. Should take 32320063 cycles
+; to complete (signaled by setting SRAM 0x42 to 1).
+;   - one timer
+;   - no sleeping
+;   - relatively few multicycle instructions
 
 .cseg
     jmp main
@@ -12,6 +16,10 @@
     reti
 oc0a:
     adiw r24, 1
+    ldi r16, 71
+    lsr r16
+    asr r16
+    add r16, r16
     reti
 
 main:
@@ -19,7 +27,7 @@ main:
     clr r24
     clr r25
     sts status, r1
-    ldi r16, 200
+    ldi r16, 250
     sts OCR0A+0x20, r16
     ldi r16, (1 << WGM01)
     sts TCCR0A+0x20, r16
