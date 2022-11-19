@@ -50,24 +50,24 @@ uint8_t sim_pop(struct avr *avr) {
 #define reg_type_timer(type) (((int)type-6)/3)
 
 // ensure that the mapping remains correct
-static_assert (reg_type_timer(REG_TIMER0_HIGH) == 0);
-static_assert (reg_type_timer(REG_TIMER0_LOW) == 0);
-static_assert (reg_type_timer(REG_TIMER0_CTRL) == 0);
-static_assert (reg_type_timer(REG_TIMER1_HIGH) == 1);
-static_assert (reg_type_timer(REG_TIMER1_LOW) == 1);
-static_assert (reg_type_timer(REG_TIMER1_CTRL) == 1);
-static_assert (reg_type_timer(REG_TIMER2_HIGH) == 2);
-static_assert (reg_type_timer(REG_TIMER2_LOW) == 2);
-static_assert (reg_type_timer(REG_TIMER2_CTRL) == 2);
-static_assert (reg_type_timer(REG_TIMER3_HIGH) == 3);
-static_assert (reg_type_timer(REG_TIMER3_LOW) == 3);
-static_assert (reg_type_timer(REG_TIMER3_CTRL) == 3);
-static_assert (reg_type_timer(REG_TIMER4_HIGH) == 4);
-static_assert (reg_type_timer(REG_TIMER4_LOW) == 4);
-static_assert (reg_type_timer(REG_TIMER4_CTRL) == 4);
-static_assert (reg_type_timer(REG_TIMER5_HIGH) == 5);
-static_assert (reg_type_timer(REG_TIMER5_LOW) == 5);
-static_assert (reg_type_timer(REG_TIMER5_CTRL) == 5);
+static_assert(reg_type_timer(REG_TIMER0_HIGH) == 0, "reg_type_timer and avr_register_type mismatch for REG_TIMER0_HIGH");
+static_assert(reg_type_timer(REG_TIMER0_LOW) == 0, "reg_type_timer and avr_register_type mismatch for REG_TIMER0_LOW");
+static_assert(reg_type_timer(REG_TIMER0_CTRL) == 0, "reg_type_timer and avr_register_type mismatch for REG_TIMER0_CTRL");
+static_assert(reg_type_timer(REG_TIMER1_HIGH) == 1, "reg_type_timer and avr_register_type mismatch for REG_TIMER1_HIGH");
+static_assert(reg_type_timer(REG_TIMER1_LOW) == 1, "reg_type_timer and avr_register_type mismatch for REG_TIMER1_LOW");
+static_assert(reg_type_timer(REG_TIMER1_CTRL) == 1, "reg_type_timer and avr_register_type mismatch for REG_TIMER1_CTRL");
+static_assert(reg_type_timer(REG_TIMER2_HIGH) == 2, "reg_type_timer and avr_register_type mismatch for REG_TIMER2_HIGH");
+static_assert(reg_type_timer(REG_TIMER2_LOW) == 2, "reg_type_timer and avr_register_type mismatch for REG_TIMER2_LOW");
+static_assert(reg_type_timer(REG_TIMER2_CTRL) == 2, "reg_type_timer and avr_register_type mismatch for REG_TIMER2_CTRL");
+static_assert(reg_type_timer(REG_TIMER3_HIGH) == 3, "reg_type_timer and avr_register_type mismatch for REG_TIMER3_HIGH");
+static_assert(reg_type_timer(REG_TIMER3_LOW) == 3, "reg_type_timer and avr_register_type mismatch for REG_TIMER3_LOW");
+static_assert(reg_type_timer(REG_TIMER3_CTRL) == 3, "reg_type_timer and avr_register_type mismatch for REG_TIMER3_CTRL");
+static_assert(reg_type_timer(REG_TIMER4_HIGH) == 4, "reg_type_timer and avr_register_type mismatch for REG_TIMER4_HIGH");
+static_assert(reg_type_timer(REG_TIMER4_LOW) == 4, "reg_type_timer and avr_register_type mismatch for REG_TIMER4_LOW");
+static_assert(reg_type_timer(REG_TIMER4_CTRL) == 4, "reg_type_timer and avr_register_type mismatch for REG_TIMER4_CTRL");
+static_assert(reg_type_timer(REG_TIMER5_HIGH) == 5, "reg_type_timer and avr_register_type mismatch for REG_TIMER5_HIGH");
+static_assert(reg_type_timer(REG_TIMER5_LOW) == 5, "reg_type_timer and avr_register_type mismatch for REG_TIMER5_LOW");
+static_assert(reg_type_timer(REG_TIMER5_CTRL) == 5, "reg_type_timer and avr_register_type mismatch for REG_TIMER5_CTRL");
 
 uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
     enum avr_register_type type = avr->model.regmap[reg].type;

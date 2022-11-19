@@ -65,8 +65,8 @@ struct avr_timer {
     uint8_t comparators;    // number of comparators (up to 3)
 
     // various configuration tables
-    enum avr_timer_wgm wgm_table[16];           // waveform generation settings
-    enum avr_timer_cs clock_src_table[8];       // clock source array (prescaler, external clock)
+    enum avr_timer_wgm wgm_table[16];       // waveform generation settings
+    enum avr_timer_cs clock_src_table[8];   // clock source array (prescaler, external clock)
 
     // timer control registers
     uint16_t reg_tcnt;      // the timer value register
@@ -84,7 +84,10 @@ struct avr_timer {
     uint8_t  msk_occ;       // output compare pin C
     // uint16_t reg_icp;       // input capture port (TODO)
     // uint8_t  msk_icp;       // input capture pin (TODO)
-    // force output compare (TODO)
+    uint16_t reg_foc;       // force output compare register
+    uint8_t  msk_foca;      // force output compare OCRnA bit
+    uint8_t  msk_focb;      // force output compare OCRnB bit
+    uint8_t  msk_focc;      // force output compare OCRnC bit
     uint16_t reg_icr;       // input capture register (only PWM timing supported)
     uint16_t reg_timsk;     // timer interrupt mask register
     uint8_t  msk_ociea;     // output compare interrupt enabled A

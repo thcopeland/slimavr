@@ -385,7 +385,8 @@ void inst_rjmp(struct avr *avr, uint16_t inst) {
         avr->status = CPU_STATUS_COMPLETING;
     } else {
         LOG("cannot jump to address 0x%06x\n", addr);
-        avr->status = CPU_INVALID_ROM_ADDRESS;
+        avr->status = CPU_STATUS_CRASHED;
+        avr->error = CPU_INVALID_ROM_ADDRESS;
     }
 }
 
