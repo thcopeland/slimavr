@@ -1,11 +1,12 @@
 .include "m1280def.inc"
 .include "base.inc"
 
-; A simple but reasonably intense benchmark program. Should take 32320063 cycles
-; to complete (signaled by setting SRAM 0x42 to 1).
-;   - one timer
+; A simple but reasonably intense benchmark program. Completion is signaled by
+; setting SRAM 0x42 to 1.
+;   - two timers
+;   - one interrupt
 ;   - no sleeping
-;   - relatively few multicycle instructions
+;   - few multicycle (overall cheaper than single-cycle) instructions
 
 .cseg
     jmp main
@@ -15,11 +16,16 @@
     ; block stray interrupts
     reti
 oc0a:
-    adiw r24, 1
+    subi r24, low(-1)
+    sbci r25, high(-1)
     ldi r16, 71
     lsr r16
     asr r16
     add r16, r16
+    in r14, TCNT0
+    lds r14, TCNT1L
+    lds r15, TCNT1H
+    add r14, r15
     reti
 
 main:
@@ -27,15 +33,23 @@ main:
     clr r24
     clr r25
     sts status, r1
-    ldi r16, 250
-    sts OCR0A+0x20, r16
+    ldi r16, 100
+    out OCR0A, r16
     ldi r16, (1 << WGM01)
-    sts TCCR0A+0x20, r16
-    sts TCNT0+0x20, r1
+    out TCCR0A, r16
+    out TCNT0, r1
     ldi r16, (1 << OCIE0A)
     sts TIMSK0, r16
     ldi r16, (1 << CS00)
-    sts TCCR0B+0x20, r16
+    out TCCR0B, r16
+    ldi r16, low(1234)
+    ldi r17, high(1234)
+    sts OCR1AH, r17
+    sts OCR1AL, r16
+    ldi r16, (1 << COM1A0)
+    sts TCCR1A, r16
+    ldi r16, (1 << WGM12) | (1 << CS10)
+    sts TCCR1B, r16
     sei
 loop:
     sei
@@ -48,7 +62,8 @@ loop:
     brlo loop
 end:
     cli
-    sts TCCR0B+0x20, r1
+    out TCCR0B, r1
+    sts TCCR1B, r1
     ldi r16, 1
     sts status, r16
 stall:

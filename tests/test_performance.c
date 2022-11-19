@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <time.h>
 #include "slimavr.h"
-#include "base.h"
 
 void test_performance(void) {
     printf("testing performance... ");

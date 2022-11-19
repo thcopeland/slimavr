@@ -58,24 +58,6 @@ enum avr_timer_cs {
     CS_RISING,      // tick on the rising edge of an external signal
 };
 
-enum avr_timer_com {
-    COM_DISCONNECTED,       // don't change the ouput pin at all
-    COM_TOGGLE,             // toggle the output pin on match
-    COM_CLEAR,              // clear the output pin on match
-    COM_SET,                // set the output pin on match
-
-    // fast PWM only
-    COM_NON_INVERTING,      // clear the output pin on match, then set it at 0
-    COM_INVERTING,          // set the output pin on match, then clear it at 0
-
-    // phase correct PWM only
-    COM_CLEAR_UP_SET_DOWN,  // clear on match when up-counting, set when down-counting
-    COM_SET_UP_CLEAR_DOWN,  // set on match when up-counting, clear when down-counting
-
-    // internally used to handle special PWM cases (eg OCRnx == TOP/BOTTOM)
-    COM_SPECIAL             // either 100% high, 100% low, or 50% duty cycle
-};
-
 struct avr_timer {
     // timer information
     enum avr_timer_type type;
@@ -85,9 +67,6 @@ struct avr_timer {
     // various configuration tables
     enum avr_timer_wgm wgm_table[16];           // waveform generation settings
     enum avr_timer_cs clock_src_table[8];       // clock source array (prescaler, external clock)
-    enum avr_timer_com com_non_pwm_table[4];    // compare output pin settings for non PWM modes
-    enum avr_timer_com com_fast_pwm_table[4];   // compare output pin settings for fast PWM modes
-    enum avr_timer_com com_phase_pwm_table[4];  // compare output pin settings for phase correct PWM modes
 
     // timer control registers
     uint16_t reg_tcnt;      // the timer value register
@@ -105,6 +84,7 @@ struct avr_timer {
     uint8_t  msk_occ;       // output compare pin C
     // uint16_t reg_icp;       // input capture port (TODO)
     // uint8_t  msk_icp;       // input capture pin (TODO)
+    // force output compare (TODO)
     uint16_t reg_icr;       // input capture register (only PWM timing supported)
     uint16_t reg_timsk;     // timer interrupt mask register
     uint8_t  msk_ociea;     // output compare interrupt enabled A
@@ -128,23 +108,53 @@ struct avr_timer {
 };
 
 struct avr_timerstate {
-    uint16_t prescale_clock;
-    uint8_t ocra_low;
-    uint8_t ocra_high;
-    uint8_t ocrb_low;
-    uint8_t ocrb_high;
-    uint8_t ocrc_low;
-    uint8_t ocrc_high;
+    // precomputed timer state
+    // these can all be derived from TCCR[ABC], but precomputing it is much faster
+    enum avr_timer_wgm wgm;     // waveform generation mode
+    uint16_t top;               // maximum timer value
+    uint16_t ovf;               // overflow interrupt value
+    uint16_t sync;              // sync from OCRnx when clk == sync
+    uint16_t prescale_mask;     // tick only when prescale_clock & prescale_mask == 0
+    uint8_t reverse_counting;   // whether to reverse direction at top and 0
+    uint8_t idle;               // whether the timer should be updated
+
+    // output control values, determine whether to do nothing, clear, set, or
+    // toggle an output pin at various points in the counting sequence
+    uint8_t coma_up_match;
+    uint8_t coma_down_match;
+    uint8_t coma_top_match;
+    uint8_t coma_bottom_match;
+    uint8_t comb_up_match;
+    uint8_t comb_down_match;
+    uint8_t comb_top_match;
+    uint8_t comb_bottom_match;
+    uint8_t comc_up_match;
+    uint8_t comc_down_match;
+    uint8_t comc_top_match;
+    uint8_t comc_bottom_match;
+
+    // dynamic timer state
+    uint16_t prescale_clock;    // prescaling state
+    uint8_t matches_blocked;    // set for one cycle when changing TCRn
+    int8_t counting_direction;  // -1 - downcounting, 1 - upcounting
+    uint8_t dirty;              // OCRnA has been changed but not syn'd, need to recompute at sync time
+
+    // internal values for double-buffered registers. These are used directly in
+    // the timer calculations, and are sync'd from corresponding OCRnx registers
+    // periodically (how often depends on wgm)
+    uint16_t ocra;
+    uint16_t ocrb;
+    uint16_t ocrc;
+
+    // shared internal buffer register
     uint8_t tmp;
-    int8_t delta;
 };
 
 struct avr;
 
 void timerstate_init(struct avr_timerstate *state);
-
+void avr_recompute_timer(struct avr *avr, const struct avr_timer *tmr, struct avr_timerstate *state);
 void avr_update_timers(struct avr *avr);
-
 uint32_t avr_find_timer_interrupt(struct avr *avr);
 
 #endif

@@ -11,10 +11,9 @@ void run_test(char *fname, long duration, struct avr_model model) {
         for (long i = 0; i < duration; i++) {
             avr_step(avr);
 
-            // c++;
-            // if (c > 0 || avr->reg[0x81]) c++;
-            // fprintf(f1, "%lu\t%d\n", c, ((avr->mem[0x25] & 0x20) > 0) * 25);
-            // fprintf(f3, "%lu\t%d\n", c, ((avr->mem[0x25] & 0x40) > 0) * 30);
+            // if (c > 0 || avr->reg[0x45]) c++;
+            // fprintf(f1, "%lu\t%d\n", c, ((avr->mem[0x25] & 0x80) > 0) * 25);
+            // fprintf(f3, "%lu\t%d\n", c, ((avr->mem[0x34] & 0x20) > 0) * 30);
             // fprintf(f2, "%lu\t%d\n", c, avr->mem[0x46]);
 
             if (avr->status == CPU_STATUS_CRASHED) {

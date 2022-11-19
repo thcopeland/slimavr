@@ -113,7 +113,7 @@ check3:
     cli
     sts TCCR0B+0x20, r1
     lds r16, TCNT0+0x20
-    cpi r16, 20 ; should be 17
+    cpi r16, 21 ; should be 17
     brne fail3
     cpi r20, 44 ; should be 45
     brne fail3

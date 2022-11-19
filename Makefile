@@ -2,7 +2,8 @@ SRC				= src
 OBJ 			= obj
 TEST			= tests
 DEFS			= # -DDEBUG
-CFLAGS			= -O2 -flto -Wall -Wextra
+# for some reason, -finline-small-functions destroys performance
+CFLAGS			= -O2 -fno-inline-small-functions -finline-functions -finline -flto -Wall -Wextra
 LDLIBS			= -lm
 
 src_models 		= $(wildcard $(SRC)/models/*.c)

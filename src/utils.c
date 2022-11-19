@@ -47,21 +47,27 @@ uint8_t sim_pop(struct avr *avr) {
 
 
 // map between register type and timer index
-#define reg_type_timer(type) (((int)type-6)/2)
+#define reg_type_timer(type) (((int)type-6)/3)
 
 // ensure that the mapping remains correct
 static_assert (reg_type_timer(REG_TIMER0_HIGH) == 0);
 static_assert (reg_type_timer(REG_TIMER0_LOW) == 0);
+static_assert (reg_type_timer(REG_TIMER0_CTRL) == 0);
 static_assert (reg_type_timer(REG_TIMER1_HIGH) == 1);
 static_assert (reg_type_timer(REG_TIMER1_LOW) == 1);
+static_assert (reg_type_timer(REG_TIMER1_CTRL) == 1);
 static_assert (reg_type_timer(REG_TIMER2_HIGH) == 2);
 static_assert (reg_type_timer(REG_TIMER2_LOW) == 2);
+static_assert (reg_type_timer(REG_TIMER2_CTRL) == 2);
 static_assert (reg_type_timer(REG_TIMER3_HIGH) == 3);
 static_assert (reg_type_timer(REG_TIMER3_LOW) == 3);
+static_assert (reg_type_timer(REG_TIMER3_CTRL) == 3);
 static_assert (reg_type_timer(REG_TIMER4_HIGH) == 4);
 static_assert (reg_type_timer(REG_TIMER4_LOW) == 4);
+static_assert (reg_type_timer(REG_TIMER4_CTRL) == 4);
 static_assert (reg_type_timer(REG_TIMER5_HIGH) == 5);
 static_assert (reg_type_timer(REG_TIMER5_LOW) == 5);
+static_assert (reg_type_timer(REG_TIMER5_CTRL) == 5);
 
 uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
     enum avr_register_type type = avr->model.regmap[reg].type;
@@ -75,6 +81,12 @@ uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
         case REG_CLEAR_ON_SET:
         case REG_EEP_CONTROL:
         case REG_SPM_CONTROL:
+        case REG_TIMER0_CTRL:
+        case REG_TIMER1_CTRL:
+        case REG_TIMER2_CTRL:
+        case REG_TIMER3_CTRL:
+        case REG_TIMER4_CTRL:
+        case REG_TIMER5_CTRL:
             return avr->reg[reg];
 
         case REG_TIMER0_LOW:
@@ -123,6 +135,16 @@ void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
             avr_set_flash_reg(avr, reg, val, 0xff);
             break;
 
+        case REG_TIMER0_CTRL:
+        case REG_TIMER1_CTRL:
+        case REG_TIMER2_CTRL:
+        case REG_TIMER3_CTRL:
+        case REG_TIMER4_CTRL:
+        case REG_TIMER5_CTRL:
+            avr->reg[reg] = val;
+            avr_recompute_timer(avr, avr->model.timers + reg_type_timer(type), avr->timer_data + reg_type_timer(type));
+            break;
+
         case REG_TIMER0_LOW:
         case REG_TIMER1_LOW:
         case REG_TIMER2_LOW:
@@ -131,6 +153,7 @@ void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
         case REG_TIMER5_LOW:
             avr->reg[reg+1] = avr->timer_data[reg_type_timer(type)].tmp;
             avr->reg[reg] = val;
+            avr_recompute_timer(avr, avr->model.timers + reg_type_timer(type), avr->timer_data + reg_type_timer(type));
             break;
 
         case REG_TIMER0_HIGH:

@@ -169,7 +169,6 @@ void avr_step(struct avr *avr) {
     avr_update(avr);
 }
 
-
 uint8_t avr_io_read(struct avr *avr, uint16_t reg) {
     return avr_get_reg(avr, reg);
 }

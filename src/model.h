@@ -13,16 +13,22 @@ enum avr_register_type {
     REG_CLEAR_ON_SET,   // a bit is cleared when 1 is written (eg TIFRn)
     REG_TIMER0_HIGH,    // atomic 16-bit access, high byte
     REG_TIMER0_LOW,     // atomic 16-bit access, low byte, triggers the 16-bit operation (use this for 8-bit too, eg OCRA0)
+    REG_TIMER0_CTRL,    // TCCRn[ABC] timer control registers
     REG_TIMER1_HIGH,
     REG_TIMER1_LOW,
+    REG_TIMER1_CTRL,
     REG_TIMER2_HIGH,
     REG_TIMER2_LOW,
+    REG_TIMER2_CTRL,
     REG_TIMER3_HIGH,
     REG_TIMER3_LOW,
+    REG_TIMER3_CTRL,
     REG_TIMER4_HIGH,
     REG_TIMER4_LOW,
+    REG_TIMER4_CTRL,
     REG_TIMER5_HIGH,
-    REG_TIMER5_LOW
+    REG_TIMER5_LOW,
+    REG_TIMER5_CTRL
 
     // at this time, more complex behavior such as SPI, USART, external memory,
     // external clocking, etc is not supported.

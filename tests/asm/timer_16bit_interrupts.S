@@ -92,14 +92,14 @@ t_ctc:
     ldi r16, 3
     sts status, r16
     ldi r16, 0xff
-    sts TIFR1, r16
+    out TIFR1, r16
     ldi r16, low(1234)
     ldi r17, high(1234)
     ldi r18, low(321)
     ldi r19, high(321)
     ldi r24, (1 << TOIE1) | (1 << OCIE1B)
-    ldi r25, (1 << WGM11)
-    ldi r26, (1 << CS10)
+    ldi r25, 0
+    ldi r26, (1 << WGM12) | (1 << CS10)
     sts TCNT1H, r1
     sts TCNT1L, r1
     sts OCR1AH, r17
@@ -119,11 +119,11 @@ check3:
     sts TCCR1B, r1
     lds r16, TCNT1L
     lds r17, TCNT1H
-    cpi r16, 43 ; should be 40
+    cpi r16, 86 ; should be 88
     ldi r18, 1
     cpc r17, r18
     brne fail3
-    cpi r20, 142 ; should be 154
+    cpi r20, 21 ; should be 24
     brne fail3
     rjmp pass
 fail3:

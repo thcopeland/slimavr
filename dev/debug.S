@@ -134,9 +134,9 @@ status:             .byte 1
     jmp main
 .org OC1Aaddr
     jmp isr_loop
-.org OC5Baddr
+.org OC1Baddr
     jmp t_ocb
-.org OVF5addr
+.org OVF1addr
     jmp t_ovf
 
 t_ocb:
@@ -152,94 +152,31 @@ t_ovf:
     reti
 
 main:
+    cli
     clr r1
-    clr r20
-    clr r21
-    cli
-
-t_normal:
-    ldi r16, 1
-    sts status, r16
-    sts TCCR5A, r1
-    ldi r16, (1 << CS10)
-    sts TCCR5B, r16
-    sts TCNT5H, r1
-    sts TCNT5L, r1
-    ldi r16, (1 << TOIE5)
-    sts TIMSK5, r16
-    sei
-wait1:
-    inc r20
-    cpi r21, 3
-    brlo wait1
-check1:
-    cli
-    sts TCCR5B, r1
-    lds r16, TCNT5L
-    lds r17, TCNT5H
-
-
-;  write_byte framebuffer, r16 ; 0x17
-;     write_byte framebuffer+DISPLAY_WIDTH, r17 ; 0x00
-;     write_byte framebuffer+2*DISPLAY_WIDTH, r20 ; 0xf9
-;     ldi r20, 0xaa
-;     write_byte framebuffer+3*DISPLAY_WIDTH, r20
-
-t_prescaled:
-    clr r20
-    clr r21
-    ldi r16, 2
-    sts status, r16
-    ldi r16, 0
-    sts TCCR5A, r16
-    ldi r16, (1 << CS51)
-    sts TCCR5B, r16
-    sts TCNT5H, r1
-    sts TCNT5L, r1
-    ldi r16, (1 << TOIE5)
-    sts TIMSK5, r16
-    sei
-wait2:
-    inc r20
-    cpi r21, 1
-    brlo wait2
-check2:
-    cli
-    sts TCCR5B, r1
-    lds r16, TCNT5L
-    lds r17, TCNT5H
-
-    ; write_byte framebuffer, r16 ; 0x03
-    ; write_byte framebuffer+DISPLAY_WIDTH, r17 ; 0x00
-    ; write_byte framebuffer+2*DISPLAY_WIDTH, r20 ; 0xff
-    ; ldi r20, 0xaa
-    ; write_byte framebuffer+3*DISPLAY_WIDTH, r20
-
-
-t_ctc:
     clr r20
     clr r21
     clr r22
     ldi r16, 3
     sts status, r16
     ldi r16, 0xff
-    sts TIFR5, r16
+    out TIFR1, r16
     ldi r16, low(1234)
     ldi r17, high(1234)
     ldi r18, low(321)
     ldi r19, high(321)
-    ldi r24, (1 << TOIE5) | (1 << OCIE5B)
-    ldi r25, (1 << WGM51)
-    ldi r26, (1 << CS50)
-    sts TCNT5H, r1
-    sts TCNT5L, r1
-    sts OCR5AH, r17
-    sts OCR5AL, r16
-    sts OCR5BH, r19
-    sts OCR5BL, r18
-    sts TIMSK5, r24
-    sts TCCR5A, r25
-    sts TCCR5B, r26
+    ldi r24, (1 << TOIE1) | (1 << OCIE1B)
+    ldi r25, 0
+    ldi r26, (1 << WGM12) | (1 << CS10)
+    sts TCNT1H, r1
+    sts TCNT1L, r1
+    sts OCR1AH, r17
+    sts OCR1AL, r16
+    sts OCR1BH, r19
+    sts OCR1BL, r18
+    sts TIMSK1, r24
+    sts TCCR1A, r25
+    sts TCCR1B, r26
     sei
 wait3:
     inc r20
@@ -247,17 +184,18 @@ wait3:
     brlo wait3
 check3:
     cli
-    sts TCCR5B, r1
-    lds r16, TCNT5L
-    lds r17, TCNT5H
+    sts TCCR1B, r1
+    sts TCCR1A, r1
+    lds r16, TCNT1L
+    lds r17, TCNT1H
 
+    write_byte framebuffer, r16
+    write_byte framebuffer+DISPLAY_WIDTH, r17
+    write_byte framebuffer+2*DISPLAY_WIDTH, r20
+    write_byte framebuffer+3*DISPLAY_WIDTH, r22
 
-    write_byte framebuffer, r16 ; 0x28
-    write_byte framebuffer+DISPLAY_WIDTH, r17 ; 0x01
-    write_byte framebuffer+2*DISPLAY_WIDTH, r20 ; 0x9a
-    ldi r20, 0xaa
-    write_byte framebuffer+3*DISPLAY_WIDTH, r20
-
+    ldi r16, 0xff
+    out TIFR1, r16
 
 vga:
     ldi r18, 0xFF
