@@ -30,7 +30,7 @@ objdirs:
 	mkdir -p $(OBJ)/models
 
 libslimavr.a: $(src_models_o) $(src_o)
-	ar rcs $@ $^
+	$(AR) rcs $@ $^
 
 $(OBJ)/models/%.o: $(SRC)/models/%.c
 	$(CC) $(DEFS) $(CFLAGS) $^ -c -o $@
