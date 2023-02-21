@@ -77,15 +77,14 @@ struct avr *avr_init(struct avr_model model) {
         avr->pending_inst.type = AVR_PENDING_NONE;
 
         alloc_avr_memory(avr);
-
         if (avr->mem == NULL) {
             free(avr);
-            avr = NULL;
-        } else {
-            uint16_t sp = model.ramstart+model.ramsize - 1;
-            avr->reg[model.reg_stack+1] = sp >> 8;
-            avr->reg[model.reg_stack] = sp & 0xff;
+            return NULL;
         }
+
+        uint16_t sp = model.ramstart+model.ramsize - 1;
+        avr->reg[model.reg_stack+1] = sp >> 8;
+        avr->reg[model.reg_stack] = sp & 0xff;
     }
     return avr;
 }
@@ -110,12 +109,11 @@ static inline void avr_update(struct avr *avr) {
 }
 
 static inline void avr_exec(struct avr *avr) {
-    uint8_t inst_l = avr->rom[avr->pc],
-            inst_h = avr->rom[avr->pc+1];
+    uint16_t inst = (avr->rom[avr->pc+1] << 8) | avr->rom[avr->pc];
 
     avr->insts++;
     LOG("%x:\t", avr->pc);
-    avr_dispatch(avr, inst_l, inst_h);
+    avr_dispatch(avr, inst);
 }
 
 static inline void avr_resolve_pending(struct avr *avr) {
