@@ -281,6 +281,6 @@ void avr_dispatch(struct avr *avr, uint16_t inst) {
     return;
 
 invalid_instruction:
-    avr->error = CPU_INVALID_INSTRUCTION;
-    avr->status = CPU_STATUS_CRASHED;
+    avr->error = AVR_INVALID_INSTRUCTION;
+    avr->status = MCU_STATUS_CRASHED;
 }

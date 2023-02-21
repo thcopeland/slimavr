@@ -119,7 +119,7 @@ void inst_adiw(struct avr *avr, uint16_t inst) {
     avr->reg[avr->model.reg_status] = status;
     avr->pc += 2;
     avr->progress = 1;
-    avr->status = CPU_STATUS_COMPLETING;
+    avr->status = MCU_STATUS_COMPLETING;
 }
 
 void inst_sub(struct avr *avr, uint16_t inst) {
@@ -187,7 +187,7 @@ void inst_sbiw(struct avr *avr, uint16_t inst) {
     avr->reg[avr->model.reg_status] = status;
     avr->pc += 2;
     avr->progress = 1;
-    avr->status = CPU_STATUS_COMPLETING;
+    avr->status = MCU_STATUS_COMPLETING;
 }
 
 void inst_and(struct avr *avr, uint16_t inst) {
@@ -307,7 +307,7 @@ void inst_mul(struct avr *avr, uint16_t inst) {
     set_sreg_mul(avr, prod);
     avr->pc += 2;
     avr->progress = 1;
-    avr->status = CPU_STATUS_COMPLETING;
+    avr->status = MCU_STATUS_COMPLETING;
 }
 
 void inst_muls(struct avr *avr, uint16_t inst) {
@@ -320,7 +320,7 @@ void inst_muls(struct avr *avr, uint16_t inst) {
     set_sreg_mul(avr, prod);
     avr->pc += 2;
     avr->progress = 1;
-    avr->status = CPU_STATUS_COMPLETING;
+    avr->status = MCU_STATUS_COMPLETING;
 }
 
 void inst_mulsu(struct avr *avr, uint16_t inst) {
@@ -333,7 +333,7 @@ void inst_mulsu(struct avr *avr, uint16_t inst) {
     set_sreg_mul(avr, prod);
     avr->pc += 2;
     avr->progress = 1;
-    avr->status = CPU_STATUS_COMPLETING;
+    avr->status = MCU_STATUS_COMPLETING;
 }
 
 void inst_fmul(struct avr *avr, uint16_t inst) {
@@ -346,7 +346,7 @@ void inst_fmul(struct avr *avr, uint16_t inst) {
     set_sreg_fmul(avr, prod);
     avr->pc += 2;
     avr->progress = 1;
-    avr->status = CPU_STATUS_COMPLETING;
+    avr->status = MCU_STATUS_COMPLETING;
 }
 
 void inst_fmuls(struct avr *avr, uint16_t inst) {
@@ -359,7 +359,7 @@ void inst_fmuls(struct avr *avr, uint16_t inst) {
     set_sreg_fmul(avr, prod);
     avr->pc += 2;
     avr->progress = 1;
-    avr->status = CPU_STATUS_COMPLETING;
+    avr->status = MCU_STATUS_COMPLETING;
 }
 
 void inst_fmulsu(struct avr *avr, uint16_t inst) {
@@ -372,7 +372,7 @@ void inst_fmulsu(struct avr *avr, uint16_t inst) {
     set_sreg_fmul(avr, prod);
     avr->pc += 2;
     avr->progress = 1;
-    avr->status = CPU_STATUS_COMPLETING;
+    avr->status = MCU_STATUS_COMPLETING;
 }
 
 void inst_rjmp(struct avr *avr, uint16_t inst) {
@@ -382,11 +382,11 @@ void inst_rjmp(struct avr *avr, uint16_t inst) {
     if (addr < avr->model.romsize) {
         avr->pc = addr;
         avr->progress = 1;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
     } else {
         LOG("cannot jump to address 0x%06x\n", addr);
-        avr->status = CPU_STATUS_CRASHED;
-        avr->error = CPU_INVALID_ROM_ADDRESS;
+        avr->status = MCU_STATUS_CRASHED;
+        avr->error = AVR_INVALID_ROM_ADDRESS;
     }
 }
 
@@ -397,11 +397,11 @@ void inst_ijmp(struct avr *avr, uint16_t inst) {
     if (addr < avr->model.romsize) {
         avr->pc = addr;
         avr->progress = 1;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
     } else {
         LOG("cannot jump to address 0x%06x\n", addr);
-        avr->status = CPU_STATUS_CRASHED;
-        avr->error = CPU_INVALID_ROM_ADDRESS;
+        avr->status = MCU_STATUS_CRASHED;
+        avr->error = AVR_INVALID_ROM_ADDRESS;
     }
 }
 
@@ -414,11 +414,11 @@ void inst_eijmp(struct avr *avr, uint16_t inst) {
     if (addr < avr->model.romsize) {
         avr->pc = addr;
         avr->progress = 1;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
     } else {
         LOG("cannot jump to address 0x%06x\n", addr);
-        avr->status = CPU_STATUS_CRASHED;
-        avr->error = CPU_INVALID_ROM_ADDRESS;
+        avr->status = MCU_STATUS_CRASHED;
+        avr->error = AVR_INVALID_ROM_ADDRESS;
     }
 }
 
@@ -429,11 +429,11 @@ void inst_jmp(struct avr *avr, uint16_t inst) {
     if (addr < avr->model.romsize) {
         avr->pc = addr;
         avr->progress = 2;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
     } else {
         LOG("cannot jump to address 0x%06x\n", addr);
-        avr->status = CPU_STATUS_CRASHED;
-        avr->error = CPU_INVALID_ROM_ADDRESS;
+        avr->status = MCU_STATUS_CRASHED;
+        avr->error = AVR_INVALID_ROM_ADDRESS;
     }
 }
 
@@ -443,15 +443,15 @@ static void sim_call(struct avr *avr, uint32_t addr, uint32_t ret, uint8_t durat
     if (avr->model.pcsize == 3) {
         sim_push(avr, (ret >> 17) & 0xff);
     }
-    if (avr->status == CPU_STATUS_NORMAL) {
+    if (avr->status == MCU_STATUS_NORMAL) {
         if (addr < avr->model.romsize) {
             avr->pc = addr;
             avr->progress = duration + (avr->model.pcsize > 2 ? 1 : 0);
-            avr->status = CPU_STATUS_COMPLETING;
+            avr->status = MCU_STATUS_COMPLETING;
         } else {
             LOG("call address 0x%06x exceeds program memory\n", addr);
-            avr->status = CPU_STATUS_CRASHED;
-            avr->error = CPU_INVALID_ROM_ADDRESS;
+            avr->status = MCU_STATUS_CRASHED;
+            avr->error = AVR_INVALID_ROM_ADDRESS;
         }
     }
 }
@@ -480,8 +480,8 @@ void inst_eicall(struct avr *avr, uint16_t inst) {
         LOG("eicall\n");
         sim_call(avr, addr, avr->pc+2, 2);
     } else {
-        avr->error = CPU_INVALID_INSTRUCTION;
-        avr->status = CPU_STATUS_CRASHED;
+        avr->error = AVR_INVALID_INSTRUCTION;
+        avr->status = MCU_STATUS_CRASHED;
     }
 }
 
@@ -500,15 +500,15 @@ static void sim_return(struct avr *avr, uint8_t duration) {
     ret |= (uint32_t) sim_pop(avr) << 9;
     ret |= (uint32_t) sim_pop(avr) << 1;
 
-    if (avr->status == CPU_STATUS_NORMAL) {
+    if (avr->status == MCU_STATUS_NORMAL) {
         if (ret < avr->model.romsize) {
             avr->pc = ret;
             avr->progress = duration + (avr->model.pcsize > 2 ? 1 : 0);
-            avr->status = CPU_STATUS_COMPLETING;
+            avr->status = MCU_STATUS_COMPLETING;
         } else {
             LOG("return address 0x%06x exceeds program memory\n", ret);
-            avr->status = CPU_STATUS_CRASHED;
-            avr->error = CPU_INVALID_ROM_ADDRESS;
+            avr->status = MCU_STATUS_CRASHED;
+            avr->error = AVR_INVALID_ROM_ADDRESS;
         }
     }
 }
@@ -532,11 +532,11 @@ static inline void sim_skip(struct avr *avr) {
     if (is_32bit_inst(next)) {
         avr->pc += 6;
         avr->progress = 2;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
     } else {
         avr->pc += 4;
         avr->progress = 1;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
     }
 }
 
@@ -635,7 +635,7 @@ void inst_branch(struct avr *avr, uint16_t inst) {
     if (chk & 1) {
         avr->pc += 2*(diff+1);
         avr->progress = 1;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
     } else {
         avr->pc += 2;
     }
@@ -769,12 +769,12 @@ static void sim_access(struct avr *avr, uint16_t ptr, uint8_t disp, uint8_t reg,
     if (opts & 0x2) addr--;
 
     if (addr+disp >= avr->model.memend) {
-        avr->error = CPU_INVALID_RAM_ADDRESS;
-        avr->status = CPU_STATUS_CRASHED;
+        avr->error = AVR_INVALID_RAM_ADDRESS;
+        avr->status = MCU_STATUS_CRASHED;
         return;
     } else {
         avr->progress = 1;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
         avr->pc += 2;
     }
 
@@ -850,15 +850,15 @@ void inst_lds(struct avr *avr, uint16_t inst) {
     uint16_t addr = (addr_h << 8) | addr_l;
     LOG("lds\tr%d, 0x%04x\n", dst, addr);
     if (addr >= avr->model.memend) {
-        avr->error = CPU_INVALID_RAM_ADDRESS;
-        avr->status = CPU_STATUS_CRASHED;
+        avr->error = AVR_INVALID_RAM_ADDRESS;
+        avr->status = MCU_STATUS_CRASHED;
     } else {
         avr->pending_inst.type = AVR_PENDING_COPY;
         avr->pending_inst.dst = dst;
         avr->pending_inst.src = addr;
         avr->pc += 4;
         avr->progress = 1;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
     }
 }
 
@@ -903,15 +903,15 @@ void inst_sts(struct avr *avr, uint16_t inst) {
     uint16_t addr = (addr_h << 8) | addr_l;
     LOG("sts\t0x%04x, r%d\n", addr, src);
     if (addr >= avr->model.memend) {
-        avr->error = CPU_INVALID_RAM_ADDRESS;
-        avr->status = CPU_STATUS_CRASHED;
+        avr->error = AVR_INVALID_RAM_ADDRESS;
+        avr->status = MCU_STATUS_CRASHED;
     } else {
         avr->pending_inst.type = AVR_PENDING_COPY;
         avr->pending_inst.dst = addr;
         avr->pending_inst.src = src;
         avr->pc += 4;
         avr->progress = 1;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
     }
 }
 
@@ -920,8 +920,8 @@ void inst_lpm(struct avr *avr, uint16_t inst) {
     uint16_t addr = ((uint16_t) avr->reg[AVR_REG_Z+1] << 8) | avr->reg[AVR_REG_Z];
     LOG("lpm\tr%d, Z%s\n", dst, inst & 1 ? "+" : "");
     if (addr >= avr->model.romsize) {
-        avr->error = CPU_INVALID_ROM_ADDRESS;
-        avr->status = CPU_STATUS_CRASHED;
+        avr->error = AVR_INVALID_ROM_ADDRESS;
+        avr->status = MCU_STATUS_CRASHED;
     } else {
         avr->reg[dst] = avr->rom[addr];
         // post-increment
@@ -932,7 +932,7 @@ void inst_lpm(struct avr *avr, uint16_t inst) {
         }
         avr->pc += 2;
         avr->progress = 2;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
     }
 }
 
@@ -943,8 +943,8 @@ void inst_elpm(struct avr *avr, uint16_t inst) {
                     avr->reg[AVR_REG_Z];
     LOG("elpm\tr%d, Z%s\n", dst, inst & 1 ? "+" : "");
     if (addr >= avr->model.romsize) {
-        avr->error = CPU_INVALID_ROM_ADDRESS;
-        avr->status = CPU_STATUS_CRASHED;
+        avr->error = AVR_INVALID_ROM_ADDRESS;
+        avr->status = MCU_STATUS_CRASHED;
     } else {
         avr->reg[dst] = avr->rom[addr];
         // post-increment
@@ -956,7 +956,7 @@ void inst_elpm(struct avr *avr, uint16_t inst) {
         }
         avr->pc += 2;
         avr->progress = 2;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
     }
 }
 
@@ -964,10 +964,10 @@ void inst_spm(struct avr *avr, uint16_t inst) {
     LOG("spm%s\n", inst & 0x10 ? "\tZ+" : "");
     avr_exec_spm(avr, inst);
 
-    if (avr->status == CPU_STATUS_NORMAL) {
+    if (avr->status == MCU_STATUS_NORMAL) {
         avr->pc += 2;
         avr->progress = 2;
-        avr->status = CPU_STATUS_COMPLETING;
+        avr->status = MCU_STATUS_COMPLETING;
     }
 }
 
@@ -983,7 +983,7 @@ void inst_push(struct avr *avr, uint16_t inst) {
     uint8_t src = (inst >> 4) & 0x1f;
     LOG("push\tr%d\n", src);
     sim_push(avr, avr->reg[src]);
-    if (avr->status == CPU_STATUS_NORMAL) {
+    if (avr->status == MCU_STATUS_NORMAL) {
         avr->pc += 2;
     }
 }
@@ -992,7 +992,7 @@ void inst_pop(struct avr *avr, uint16_t inst) {
     uint8_t dst = (inst >> 4) & 0x1f;
     LOG("pop\tr%d\n", dst);
     avr->reg[dst] = sim_pop(avr);
-    if (avr->status == CPU_STATUS_NORMAL) {
+    if (avr->status == MCU_STATUS_NORMAL) {
         avr->pc += 2;
     }
 }
@@ -1007,20 +1007,55 @@ void inst_sleep(struct avr *avr, uint16_t inst) {
     (void) inst;
     LOG("sleep\n");
     // this is woefully incomplete but good enough for now
-    avr->status = CPU_STATUS_IDLE;
+    avr->status = MCU_STATUS_IDLE;
     avr->pc += 2;
 }
 
 void inst_wdr(struct avr *avr, uint16_t inst) {
     (void) inst;
     LOG("wdr\n");
-    avr->status = CPU_STATUS_CRASHED;
-    avr->error = CPU_UNSUPPORTED_INSTRUCTION;
+    avr->status = MCU_STATUS_CRASHED;
+    avr->error = AVR_UNSUPPORTED_INSTRUCTION;
 }
 
 void inst_break(struct avr *avr, uint16_t inst) {
     (void) inst;
     LOG("break\n");
-    avr->status = CPU_STATUS_CRASHED;
-    avr->error = CPU_UNSUPPORTED_INSTRUCTION;
+    avr->status = MCU_STATUS_CRASHED;
+    avr->error = AVR_UNSUPPORTED_INSTRUCTION;
+}
+
+void inst_xch(struct avr *avr, uint16_t inst) {
+    (void) inst;
+    LOG("xch\n");
+    avr->status = MCU_STATUS_CRASHED;
+    avr->error = AVR_UNSUPPORTED_INSTRUCTION;
+}
+
+void inst_lat(struct avr *avr, uint16_t inst) {
+    (void) inst;
+    LOG("lat Z, r%d\n", (inst >> 4) & 0x1f);
+    avr->status = MCU_STATUS_CRASHED;
+    avr->error = AVR_UNSUPPORTED_INSTRUCTION;
+}
+
+void inst_lac(struct avr *avr, uint16_t inst) {
+    (void) inst;
+    LOG("lac Z, r%d\n", (inst >> 4) & 0x1f);
+    avr->status = MCU_STATUS_CRASHED;
+    avr->error = AVR_UNSUPPORTED_INSTRUCTION;
+}
+
+void inst_las(struct avr *avr, uint16_t inst) {
+    (void) inst;
+    LOG("las Z, r%d\n", (inst >> 4) & 0x1f);
+    avr->status = MCU_STATUS_CRASHED;
+    avr->error = AVR_UNSUPPORTED_INSTRUCTION;
+}
+
+void inst_des(struct avr *avr, uint16_t inst) {
+    (void) inst;
+    LOG("des %d\n", (inst >> 4) & 0x0f);
+    avr->status = MCU_STATUS_CRASHED;
+    avr->error = AVR_UNSUPPORTED_INSTRUCTION;
 }

@@ -27,8 +27,8 @@ void sim_push(struct avr *avr, uint8_t val) {
         avr->mem[sp] = val;
         set_sp(avr, --sp);
     } else {
-        avr->error = CPU_INVALID_RAM_ADDRESS;
-        avr->status = CPU_STATUS_CRASHED;
+        avr->error = AVR_INVALID_RAM_ADDRESS;
+        avr->status = MCU_STATUS_CRASHED;
     }
 }
 
@@ -39,8 +39,8 @@ uint8_t sim_pop(struct avr *avr) {
         set_sp(avr, ++sp);
         return avr->mem[sp];
     } else {
-        avr->error = CPU_INVALID_RAM_ADDRESS;
-        avr->status = CPU_STATUS_CRASHED;
+        avr->error = AVR_INVALID_RAM_ADDRESS;
+        avr->status = MCU_STATUS_CRASHED;
         return 0;
     }
 }

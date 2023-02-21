@@ -10,7 +10,7 @@ void test_performance(void) {
         while(avr->ram[0x42] == 0) {
             avr_step(avr);
 
-            if (avr->status == CPU_STATUS_CRASHED) {
+            if (avr->status == MCU_STATUS_CRASHED) {
                 printf("cpu crashed (%d)\n", avr->error);
                 break;
             }

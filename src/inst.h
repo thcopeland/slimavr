@@ -79,5 +79,10 @@ void inst_nop(struct avr *avr, uint16_t inst);
 void inst_sleep(struct avr *avr, uint16_t inst);
 void inst_wdr(struct avr *avr, uint16_t inst);
 void inst_break(struct avr *avr, uint16_t inst);
+void inst_xch(struct avr *avr, uint16_t inst);
+void inst_lat(struct avr *avr, uint16_t inst);
+void inst_lac(struct avr *avr, uint16_t inst);
+void inst_las(struct avr *avr, uint16_t inst);
+void inst_des(struct avr *avr, uint16_t inst);
 
 #endif

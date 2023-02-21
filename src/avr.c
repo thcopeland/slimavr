@@ -68,7 +68,7 @@ struct avr *avr_init(struct avr_model model) {
     struct avr *avr = malloc(sizeof(*avr));
     if (avr) {
         avr->error = 0;
-        avr->status = CPU_STATUS_NORMAL;
+        avr->status = MCU_STATUS_NORMAL;
         avr->progress = 0;
         avr->model = model;
         avr->pc = 0;
@@ -135,32 +135,32 @@ static inline void avr_resolve_pending(struct avr *avr) {
 
 void avr_step(struct avr *avr) {
     switch (avr->status) {
-        case CPU_STATUS_NORMAL:
+        case MCU_STATUS_NORMAL:
             avr_exec(avr);
             break;
 
-        case CPU_STATUS_COMPLETING:
+        case MCU_STATUS_COMPLETING:
             LOG("*** continuing last instruction (%d) ***\n", avr->progress);
             avr->progress--;
             if (avr->progress <= 0) {
                 avr_resolve_pending(avr);
-                avr->status = CPU_STATUS_NORMAL;
+                avr->status = MCU_STATUS_NORMAL;
             }
             break;
 
-        case CPU_STATUS_INTERRUPTING:
+        case MCU_STATUS_INTERRUPTING:
             LOG("*** responding to interrupt (%d) ***\n", avr->progress);
             avr->progress--;
             if (avr->progress <= 0) {
-                avr->status = CPU_STATUS_NORMAL;
+                avr->status = MCU_STATUS_NORMAL;
             }
             break;
 
-        case CPU_STATUS_IDLE:
+        case MCU_STATUS_IDLE:
             LOG("*** sleeping ***\n");
             break;
 
-        case CPU_STATUS_CRASHED:
+        case MCU_STATUS_CRASHED:
             return;
     }
 

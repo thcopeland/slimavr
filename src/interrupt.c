@@ -3,12 +3,12 @@
 #include "utils.h"
 
 static void schedule_interrupt(struct avr *avr, uint32_t vec) {
-    if (avr->status == CPU_STATUS_IDLE) {
+    if (avr->status == MCU_STATUS_IDLE) {
         avr->progress = avr->model.interrupt_time*2;
     } else {
         avr->progress = avr->model.interrupt_time;
     }
-    avr->status = CPU_STATUS_INTERRUPTING;
+    avr->status = MCU_STATUS_INTERRUPTING;
     avr->reg[avr->model.reg_status] &= 0x7f;
     sim_push(avr, (avr->pc >> 1) & 0xff);
     sim_push(avr, (avr->pc >> 9) & 0xff);
@@ -19,7 +19,7 @@ static void schedule_interrupt(struct avr *avr, uint32_t vec) {
 }
 
 void avr_check_interrupts(struct avr *avr) {
-    if ((avr->status == CPU_STATUS_NORMAL || avr->status == CPU_STATUS_IDLE) &&
+    if ((avr->status == MCU_STATUS_NORMAL || avr->status == MCU_STATUS_IDLE) &&
         (avr->reg[avr->model.reg_status] & 0x80)) {
         // check timers
         uint32_t vec = avr_find_timer_interrupt(avr);

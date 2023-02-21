@@ -16,7 +16,7 @@ void run_test(char *fname, long duration, struct avr_model model) {
             // fprintf(f3, "%lu\t%d\n", c, ((avr->mem[0x34] & 0x20) > 0) * 30);
             // fprintf(f2, "%lu\t%d\n", c, avr->mem[0x46]);
 
-            if (avr->status == CPU_STATUS_CRASHED) {
+            if (avr->status == MCU_STATUS_CRASHED) {
                 printf("cpu crashed (%d)\n", avr->error);
                 break;
             }
