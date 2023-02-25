@@ -94,13 +94,13 @@ int avr_dump(struct avr *avr, const char *fname) {
     fprintf(f, "Instruction: %s\n", inst_string);
     fprintf(f, "Registers:\n");
     for (int i = 0; i < 8; i += 1) {
-        fprintf(f, " r%-2d = %2d", i, avr->reg[i]);
+        fprintf(f, " r%-2d = %3d", i, avr->reg[i]);
         if (avr->model.regsize > 8) {
-            fprintf(f, "        r%-2d = %2d", i+8, avr->reg[i + 8]);
+            fprintf(f, "        r%-2d = %3d", i+8, avr->reg[i + 8]);
 
             if (avr->model.regsize > 16) {
-                fprintf(f, "        r%-2d = %2d", i+16, avr->reg[i + 16]);
-                fprintf(f, "        r%-2d = %2d", i+24, avr->reg[i + 24]);
+                fprintf(f, "        r%-2d = %3d", i+16, avr->reg[i + 16]);
+                fprintf(f, "        r%-2d = %3d", i+24, avr->reg[i + 24]);
             }
         }
         fprintf(f, "\n");

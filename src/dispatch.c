@@ -156,7 +156,7 @@ void avr_dispatch(struct avr *avr, uint16_t inst) {
             }
             break;
         case 0x9400:
-            if ((inst & 0x000e) == 0x0008) {
+            if ((inst & 0x020e) == 0x0008) {
                 if ((inst & 0xff8f) == 0x9408) inst_bset(avr, inst);
                 else if ((inst & 0xff8f) == 0x9488) inst_bclr(avr, inst);
                 else if (inst == 0x9409) inst_ijmp(avr, inst);

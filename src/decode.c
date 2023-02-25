@@ -609,7 +609,7 @@ void avr_decode(char *str, int size, uint16_t inst, uint16_t inst2) {
             }
             break;
         case 0x9400:
-            if ((inst & 0x000e) == 0x0008) {
+            if ((inst & 0x020e) == 0x0008) {
                 if ((inst & 0xff8f) == 0x9408) decode_bset(str, size, inst);
                 else if ((inst & 0xff8f) == 0x9488) decode_bclr(str, size, inst);
                 else if (inst == 0x9409) decode_ijmp(str, size, inst);
