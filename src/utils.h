@@ -1,5 +1,5 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef SLIMAVR_UTILS_H
+#define SLIMAVR_UTILS_H
 
 #include <stdint.h>
 

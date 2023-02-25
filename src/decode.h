@@ -1,5 +1,5 @@
-#ifndef DECODE_H
-#define DECODE_H
+#ifndef SLIMAVR_DECODE_H
+#define SLIMAVR_DECODE_H
 
 #include <stdint.h>
 

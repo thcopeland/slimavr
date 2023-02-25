@@ -1,5 +1,5 @@
-#ifndef OPT_H
-#define OPT_H
+#ifndef SLIMAVR_OPT_H
+#define SLIMAVR_OPT_H
 
 #ifndef DEBUG
 #define DEBUG 0

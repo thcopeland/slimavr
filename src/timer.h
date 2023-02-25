@@ -1,5 +1,5 @@
-#ifndef TIMER_H
-#define TIMER_H
+#ifndef SLIMAVR_TIMER_H
+#define SLIMAVR_TIMER_H
 
 #include <stdint.h>
 

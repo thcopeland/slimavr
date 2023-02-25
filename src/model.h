@@ -1,5 +1,5 @@
-#ifndef MODEL_H
-#define MODEL_H
+#ifndef SLIMAVR_MODEL_H
+#define SLIMAVR_MODEL_H
 
 #include <stdint.h>
 #include "timer.h"

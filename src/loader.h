@@ -1,5 +1,5 @@
-#ifndef LOADER_H
-#define LOADER_H
+#ifndef SLIMAVR_LOADER_H
+#define SLIMAVR_LOADER_H
 
 #include "avr.h"
 

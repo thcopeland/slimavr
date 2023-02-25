@@ -1,5 +1,5 @@
-#ifndef AVR_H
-#define AVR_H
+#ifndef SLIMAVR_AVR_H
+#define SLIMAVR_AVR_H
 
 #include <stdint.h>
 #include "model.h"

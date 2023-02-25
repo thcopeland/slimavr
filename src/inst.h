@@ -1,5 +1,5 @@
-#ifndef INST_H
-#define INST_H
+#ifndef SLIMAVR_INST_H
+#define SLIMAVR_INST_H
 
 #include "avr.h"
 

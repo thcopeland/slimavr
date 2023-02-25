@@ -1,5 +1,5 @@
-#ifndef AVRDEFS_H
-#define AVRDEFS_H
+#ifndef SLIMAVR_AVRDEFS_H
+#define SLIMAVR_AVRDEFS_H
 
 #define AVR_REG_R0 0
 #define AVR_REG_R1 1

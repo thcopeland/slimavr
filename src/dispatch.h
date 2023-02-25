@@ -1,5 +1,5 @@
-#ifndef DISPATCH_H
-#define DISPATCH_H
+#ifndef SLIMAVR_DISPATCH_H
+#define SLIMAVR_DISPATCH_H
 
 #include "avr.h"
 #include "inst.h"

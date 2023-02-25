@@ -1,5 +1,5 @@
-#ifndef INTERRUPT_H
-#define INTERRUPT_H
+#ifndef SLIMAVR_INTERRUPT_H
+#define SLIMAVR_INTERRUPT_H
 
 #include <stdint.h>
 #include "avr.h"

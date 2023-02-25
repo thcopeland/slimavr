@@ -1,12 +1,8 @@
-#ifndef TRACE_H
-#define TRACE_H
+#ifndef SLIMAVR_TRACE_H
+#define SLIMAVR_TRACE_H
 
 #ifndef AVR_DEBUG_HISTORY_SIZE
 #define AVR_DEBUG_HISTORY_SIZE 32
-#endif
-
-#ifndef AVR_DEBUG_MESSAGE_SIZE
-#define AVR_DEBUG_MESSAGE_SIZE 256
 #endif
 
 struct avr_trace_inst {

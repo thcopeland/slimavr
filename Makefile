@@ -3,7 +3,7 @@ OBJ 			= obj
 TEST			= tests
 DEBUG			?= 0
 DEFS			= -DDEBUG=$(DEBUG)
-CFLAGS			= -O2 -fno-inline-small-functions -finline-functions -finline -flto -Wall -Wextra
+CFLAGS			= -O2 -finline-functions -finline -flto -Wall -Wextra
 LDLIBS			= -lm
 
 src_models 		= $(wildcard $(SRC)/models/*.c)

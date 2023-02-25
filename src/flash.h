@@ -1,5 +1,5 @@
-#ifndef FLASH_H
-#define FLASH_H
+#ifndef SLIMAVR_FLASH_H
+#define SLIMAVR_FLASH_H
 
 #include <stdint.h>
 #include <stddef.h>

@@ -16,7 +16,7 @@ mkdir "$base/obj"
 
 echo 'SRC             = src
 OBJ             = obj
-DEFS            = # add -DDEBUG for instruction listing
+DEFS            = -DDEBUG=0 # debug level
 CFLAGS          = -O2 -fno-inline-small-functions -finline-functions -finline -flto -Wall -Wextra
 
 src_models      = $(wildcard $(SRC)/models/*.c)

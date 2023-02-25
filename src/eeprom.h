@@ -1,5 +1,5 @@
-#ifndef EEPROM_H
-#define EEPROM_H
+#ifndef SLIMAVR_EEPROM_H
+#define SLIMAVR_EEPROM_H
 
 #define AVR_ECCR_EERE  0x01
 #define AVR_ECCR_EEPE  0x02
