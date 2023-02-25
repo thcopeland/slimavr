@@ -2,7 +2,7 @@
 
 Slimavr is a slim, fast simulator for a subset of 8-bit AVR microcontrollers. The name follows in the grand tradition established by [simulavr](https://www.nongnu.org/simulavr/) and [simavr](https://github.com/buserror/simavr).
 
-Unlike these older projects, slimavr is designed to run at or faster than the standard AVR 16 MHz. On my 2.6 GHz laptop it can achieve around 39 MHz on [this benchmark](tests/asm/benchmark.S). Performance strongly depends on the program, however. Programs using several timers tend to be slower. Programs that use prescaled timers (or none at all) can be much faster.
+Unlike these older projects, slimavr is designed to run at or faster than the standard AVR 16 MHz. On my 2.6 GHz laptop it can achieve around 38 MHz on [this benchmark](tests/asm/benchmark.S). Performance strongly depends on the program, however. Programs using several timers tend to be slower. Programs that use prescaled timers (or none at all) can be much faster.
 
 However, unless you need this sort of performance, you should use simavr. It is far more complete and stable. In fact, even if you do need slimavr's speed, I'd strongly recommend testing frequently with simavr (or better still, a physical MCU) to ensure that things work properly.
 
@@ -12,13 +12,12 @@ Currently, the following devices are supported:
 
 - ATmega 1280/2560
 
-Which is not very many. Neither is this support complete by any means. If your project needs some other MCU, please create an Issue or PR.
+which is not very many. Neither is this support complete by any means. If your project needs some other MCU, please create an Issue or PR.
 
 ## Missing features
 
 Slimavr is far from complete. At this point, it lacks
 
- - Debugger support
  - Fuse emulation
  - External interrupts
  - External timers
@@ -43,7 +42,7 @@ Slimavr is intended to be placed into your project source and compiled with it. 
 
 To create a simulated device, use
 ```c
-struct avr *avr_init(struct avr_model model);
+struct avr *avr_new(struct avr_model model);
 ```
 where `model` is some supported model, such as `AVR_MODEL_ATMEGA1280`. If memory allocations fail, `avr_init` will return `NULL`.
 
@@ -57,7 +56,7 @@ To advance the device by a single cycle, use
 ```c
 void avr_step(struct avr *avr);
 ```
-Also note that, unlike simavr, this does not necessary execute a full instruction.
+Note that, unlike simavr, this does not necessary execute a full instruction.
 
 In order to interact with and examine the simulated device, you can access its memory through the `mem`, `rom`, `reg`, `ram`, or `eep` fields. These segments are arranged in memory so that they can be accessed through `mem` in the usual address space (R0-R31, register file, SRAM).
 
@@ -93,6 +92,11 @@ If you want to modify IO registers, two helper functions are provided to ensure 
 ```c
 uint8_t avr_io_read(struct avr *avr, uint16_t reg);
 void avr_io_write(struct avr *avr, uint16_t reg, uint8_t val);
+```
+
+If the emulated MCU crashes, you can use `avr_dump` to inspect the current state and recently executed instructions.
+```c
+int avr_dump(struct avr *avr, const char *fname);
 ```
 
 When you've finished with the device, use

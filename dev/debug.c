@@ -2,13 +2,13 @@
 #include "src/slimavr.h"
 
 int main() {
-    struct avr *avr = avr_init(AVR_MODEL_ATMEGA1280);
+    struct avr *avr = avr_new(AVR_MODEL_ATMEGA1280);
     long duration = 60;
     if (avr_load_ihex(avr, "debug.S.hex") == 0) {
         for (long i = 0; i < duration; i++) {
             avr_step(avr);
 
-            if (avr->status == CPU_STATUS_CRASHED) {
+            if (avr->status == MCU_STATUS_CRASHED) {
                 printf("cpu crashed (%d)\n", avr->error);
                 break;
             }

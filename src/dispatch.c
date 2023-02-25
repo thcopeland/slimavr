@@ -270,8 +270,12 @@ void avr_dispatch(struct avr *avr, uint16_t inst) {
             else inst_bst(avr, inst);
             break;
         case 0xfc00:
-            if ((inst & 0x0200) == 0x0000) inst_sbrc(avr, inst);
-            else inst_sbrs(avr, inst);
+            if ((inst & 0x0008) == 0) {
+                if ((inst & 0x0200) == 0x0000) inst_sbrc(avr, inst);
+                else inst_sbrs(avr, inst);
+            } else {
+                goto invalid_instruction;
+            }
             break;
         default:
             goto invalid_instruction;
@@ -281,6 +285,5 @@ void avr_dispatch(struct avr *avr, uint16_t inst) {
     return;
 
 invalid_instruction:
-    avr->error = AVR_INVALID_INSTRUCTION;
-    avr->status = MCU_STATUS_CRASHED;
+    avr_panic(avr, AVR_INVALID_INSTRUCTION);
 }

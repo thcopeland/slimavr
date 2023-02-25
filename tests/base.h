@@ -2,7 +2,7 @@
 #include "slimavr.h"
 
 void run_test(char *fname, long duration, struct avr_model model) {
-    struct avr *avr = avr_init(model);
+    struct avr *avr = avr_new(model);
     // FILE *f1 = fopen("../ch1.dat", "w"),
     //      *f2 = fopen("../tcnt.dat", "w"),
     //      *f3 = fopen("../ch2.dat", "w");
@@ -17,7 +17,7 @@ void run_test(char *fname, long duration, struct avr_model model) {
             // fprintf(f2, "%lu\t%d\n", c, avr->mem[0x46]);
 
             if (avr->status == MCU_STATUS_CRASHED) {
-                printf("cpu crashed (%d)\n", avr->error);
+                avr_dump(avr, NULL);
                 break;
             }
         }

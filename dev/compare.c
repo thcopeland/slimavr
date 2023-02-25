@@ -25,7 +25,7 @@ struct avr_t *simavr_init(char *fname) {
 }
 
 struct avr *slimavr_init(char *fname) {
-    struct avr *avr = avr_init(AVR_MODEL_ATMEGA1280);
+    struct avr *avr = avr_new(AVR_MODEL_ATMEGA1280);
     avr_load_ihex(avr, fname);
     return avr;
 }
@@ -41,10 +41,10 @@ void simavr_step(struct avr_t *avr) {
 void slimavr_step(struct avr *avr) {
     avr_step(avr);
 
-    if (avr->status == CPU_STATUS_CRASHED) {
+    if (avr->status == MCU_STATUS_CRASHED) {
         printf("slimavr crashed\n");
     } else {
-        while (avr->status != CPU_STATUS_NORMAL) avr_step(avr);
+        while (avr->status != MCU_STATUS_NORMAL) avr_step(avr);
     }
 }
 

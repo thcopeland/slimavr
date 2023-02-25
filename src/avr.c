@@ -3,10 +3,12 @@
 #include <string.h>
 #include "model.h"
 #include "dispatch.h"
+#include "decode.h"
 #include "interrupt.h"
 #include "opt.h"
 #include "avr.h"
 #include "utils.h"
+#include "trace.h"
 
 static void alloc_avr_memory(struct avr *avr) {
     // In order to simplify and speed up data accesses, all data segments (register
@@ -63,7 +65,7 @@ static void alloc_avr_memory(struct avr *avr) {
     }
 }
 
-struct avr *avr_init(struct avr_model model) {
+struct avr *avr_new(struct avr_model model) {
     check_compatibility();
     struct avr *avr = malloc(sizeof(*avr));
     if (avr) {
@@ -76,8 +78,15 @@ struct avr *avr_init(struct avr_model model) {
         avr->insts = 0;
         avr->pending_inst.type = AVR_PENDING_NONE;
 
+        avr->trace = avr_trace_new();
+        if (avr->trace == NULL) {
+            free(avr);
+            return NULL;
+        }
+
         alloc_avr_memory(avr);
         if (avr->mem == NULL) {
+            avr_trace_free(avr->trace);
             free(avr);
             return NULL;
         }
@@ -92,6 +101,7 @@ struct avr *avr_init(struct avr_model model) {
 void avr_free(struct avr *avr) {
     if (avr) {
         avr_free_flash_state(&avr->flash_data);
+        avr_trace_free(avr->trace);
         free(avr->mem);
         free(avr->timer_data);
         free(avr);
@@ -111,8 +121,17 @@ static inline void avr_update(struct avr *avr) {
 static inline void avr_exec(struct avr *avr) {
     uint16_t inst = (avr->rom[avr->pc+1] << 8) | avr->rom[avr->pc];
 
-    avr->insts++;
     LOG("%x:\t", avr->pc);
+#ifdef SLIMAVR_DEBUG_HISTORY
+    uint16_t inst2 = (avr->rom[avr->pc+3] << 8) | avr->rom[avr->pc+2];
+#ifdef SLIMAVR_DEBUG_LOG
+    char inst_str[32];
+    avr_decode(inst_str, sizeof(inst_str), inst, inst2);
+    LOG("%s\n", inst_str);
+#endif
+    avr_trace_enq(avr->trace, avr->pc, inst, inst2);
+#endif
+    avr->insts++;
     avr_dispatch(avr, inst);
 }
 

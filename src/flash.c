@@ -72,8 +72,7 @@ static void avr_flash_complete(struct avr *avr) {
     if (flash->operation == AVR_SPM_OP_ERASE) {
         if (flash->addr + avr->model.flash_pgsize >= avr->model.romsize) {
             LOG("*** Cannot erase flash page starting at 0x%x *** \n", flash->addr);
-            avr->status = MCU_STATUS_CRASHED;
-            avr->error = AVR_INVALID_ROM_ADDRESS;
+            avr_panic(avr, AVR_INVALID_ROM_ADDRESS);
         } else {
             memset(avr->rom+flash->addr, 0xff, avr->model.flash_pgsize);
             avr->reg[avr->model.reg_spmcsr] &= ~(AVR_SPMCSR_PGERS | AVR_SPMCSR_SPMEN);
@@ -87,8 +86,7 @@ static void avr_flash_complete(struct avr *avr) {
     } else if (flash->operation == AVR_SPM_OP_WRITE) {
         if (flash->addr + avr->model.flash_pgsize >= avr->model.romsize) {
             LOG("*** Cannot write flash page starting at 0x%x *** \n", flash->addr);
-            avr->status = MCU_STATUS_CRASHED;
-            avr->error = AVR_INVALID_ROM_ADDRESS;
+            avr_panic(avr, AVR_INVALID_ROM_ADDRESS);
         } else {
             memcpy(avr->rom+flash->addr, flash->buffer, avr->model.flash_pgsize);
             memset(flash->buffer, 0xff, avr->model.flash_pgsize);

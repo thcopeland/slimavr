@@ -4,7 +4,7 @@
 
 void test_performance(void) {
     printf("testing performance... ");
-    struct avr *avr = avr_init(AVR_MODEL_ATMEGA1280);
+    struct avr *avr = avr_new(AVR_MODEL_ATMEGA1280);
     if (avr_load_ihex(avr, "asm/benchmark.hex") == 0) {
         clock_t start = clock();
         while(avr->ram[0x42] == 0) {

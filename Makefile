@@ -1,8 +1,8 @@
 SRC				= src
 OBJ 			= obj
 TEST			= tests
-DEFS			= # -DDEBUG
-# for some reason, -finline-small-functions destroys performance
+DEBUG			?= 0
+DEFS			= -DDEBUG=$(DEBUG)
 CFLAGS			= -O2 -fno-inline-small-functions -finline-functions -finline -flto -Wall -Wextra
 LDLIBS			= -lm
 

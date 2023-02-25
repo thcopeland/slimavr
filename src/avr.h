@@ -33,11 +33,17 @@ struct avr_pending_inst {
     enum avr_pending_type type;
 };
 
+#define avr_panic(avr, err) ({                                                  \
+    avr->error = err;                                                           \
+    avr->status = MCU_STATUS_CRASHED;                                           \
+})
+
+struct avr_tracedata;
+
 struct avr {
     struct avr_model model;     // processor model
     enum avr_error error;       // current error, if any
     enum avr_status status;     // processor state
-    struct avr_debug *debug;    // debug information
     int8_t progress;            // cycles remaining for multi-cycle instructions
     uint32_t pc;                // program counter
     uint64_t clock;             // number of cycles
@@ -57,12 +63,13 @@ struct avr {
     struct avr_pending_inst pending_inst;
     struct avr_eeprom_state eeprom_data;
     struct avr_flash_state flash_data;
+    struct avr_tracedata *trace;
 };
 
 /*
  * Allocate and initialize a new avr instance of the given model.
  */
-struct avr *avr_init(struct avr_model model);
+struct avr *avr_new(struct avr_model model);
 
 /*
  * Free an avr instance.
@@ -70,17 +77,21 @@ struct avr *avr_init(struct avr_model model);
 void avr_free(struct avr *avr);
 
 /*
+ * Dump the contents of the register file and recent instructions. If fname is
+ * null, writes to stdout.
+ */
+int avr_dump(struct avr *avr, const char *fname);
+
+/*
  * Step a single cycle.
  */
 void avr_step(struct avr *avr);
-
 
 /*
  * Read an IO register's value. This can be used for basic communication, but
  * if you need more control, you should access avr->reg or avr->mem directly.
  */
 uint8_t avr_io_read(struct avr *avr, uint16_t reg);
-
 
 /*
  * Write to an IO register. This can be used for basic communication, but
