@@ -48,7 +48,7 @@ main:
     sts OCR1AL, r16
     ldi r16, (1 << COM1A0)
     sts TCCR1A, r16
-    ldi r16, (1 << WGM12) | (1 << CS10)
+    ldi r16, (1 << WGM12) | (1 << CS12) | (1 << CS10)
     sts TCCR1B, r16
     sei
 loop:
