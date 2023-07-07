@@ -66,7 +66,6 @@ static void alloc_avr_memory(struct avr *avr) {
 }
 
 struct avr *avr_new(struct avr_model model) {
-    check_compatibility();
     struct avr *avr = malloc(sizeof(*avr));
     if (avr) {
         avr->error = 0;

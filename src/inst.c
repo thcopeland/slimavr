@@ -624,7 +624,7 @@ void inst_ror(struct avr *avr, uint16_t inst) {
 void inst_asr(struct avr *avr, uint16_t inst) {
     uint8_t reg = (inst >> 4) & 0x1f,
             val = avr->reg[reg];
-    avr->reg[reg] = (uint8_t) ((int8_t) val >> 1);
+    avr->reg[reg] = (val & 0x80) | (val >> 1);
     set_sreg_rshift(avr, val, avr->reg[reg]);
     avr->pc += 2;
 }

@@ -21,6 +21,4 @@
     #define LOG(...) ((void)0)
 #endif
 
-void check_compatibility(void);
-
 #endif
