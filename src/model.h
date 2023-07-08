@@ -28,7 +28,19 @@ enum avr_register_type {
     REG_TIMER4_CTRL,
     REG_TIMER5_HIGH,
     REG_TIMER5_LOW,
-    REG_TIMER5_CTRL
+    REG_TIMER5_CTRL,
+    REG_PORTA_IN,       // partially depends on external simulated connections
+    REG_PORTB_IN,
+    REG_PORTC_IN,
+    REG_PORTD_IN,
+    REG_PORTE_IN,
+    REG_PORTF_IN,
+    REG_PORTG_IN,
+    REG_PORTH_IN,
+    REG_PORTI_IN,
+    REG_PORTJ_IN,
+    REG_PORTK_IN,
+    REG_PORTL_IN,
 
     // at this time, more complex behavior such as SPI, USART, external memory,
     // external clocking, etc is not supported.
@@ -87,7 +99,13 @@ struct avr_model {
     uint16_t msk_eear;
     uint16_t reg_eedr;
 
-    // important interrupt vectors
+    // port information
+    uint8_t port_count;         // number of ports (including gaps, i.e. PORTL=11)
+    uint16_t *reg_pins;         // 0x0000 for ports that don't exist
+    uint16_t *reg_ports;
+    uint16_t *reg_ddrs;
+
+    // important interrupt vectors (timers handled elsewhere)
     uint32_t vec_spmrdy;        // store program memory completed
     uint32_t vec_eerdy;         // EEPROM ready
 

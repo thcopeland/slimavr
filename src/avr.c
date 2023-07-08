@@ -11,6 +11,8 @@
 #include "trace.h"
 
 static void alloc_avr_memory(struct avr *avr) {
+    // TODO: clean up, separate allocations and initializations a bit more
+
     // In order to simplify and speed up data accesses, all data segments (register
     // file, SRAM, EEPROM, program memory) are actually just pointers into a
     // single contiguous block of memory, structured to match the address space.
@@ -44,6 +46,7 @@ static void alloc_avr_memory(struct avr *avr) {
         memset(avr->eep, 0xff, avr->model.eepsize);
     }
 
+    // allocate and init flash
     avr_init_flash_state(&avr->flash_data, avr->model.flash_pgsize);
     if (avr->flash_data.buffer == NULL) {
         free(avr->mem);
@@ -51,12 +54,30 @@ static void alloc_avr_memory(struct avr *avr) {
         return;
     }
 
+    // init eeprom
     avr_init_eeprom_state(&avr->eeprom_data);
 
+    // allocate and init pin connections
+    avr->pin_data = malloc(sizeof(avr->pin_data[0])*avr->model.port_count);
+    if (avr->pin_data == NULL) {
+        free(avr->mem);
+        free(avr->flash_data.buffer);
+        avr->mem = NULL;
+        return;
+    } else {
+        for (unsigned i = 0; i < avr->model.port_count; i++) {
+            for (unsigned j = 0; j < sizeof(avr->pin_data[0])/sizeof(avr->pin_data[0][0]); j++) {
+                avr->pin_data[i][j] = PIN_FLOATING;
+            }
+        }
+    }
+
+    // allocate and init timers
     avr->timer_data = malloc(sizeof(avr->timer_data[0])*avr->model.timer_count);
     if (avr->timer_data == NULL) {
         free(avr->mem);
         free(avr->flash_data.buffer);
+        free(avr->pin_data);
         avr->mem = NULL;
     } else {
         for (int i = 0; i < avr->model.timer_count; i++) {
@@ -102,6 +123,7 @@ void avr_free(struct avr *avr) {
         avr_free_flash_state(&avr->flash_data);
         avr_trace_free(avr->trace);
         free(avr->mem);
+        free(avr->pin_data);
         free(avr->timer_data);
         free(avr);
     }
@@ -183,12 +205,4 @@ void avr_step(struct avr *avr) {
     }
 
     avr_update(avr);
-}
-
-uint8_t avr_io_read(struct avr *avr, uint16_t reg) {
-    return avr_get_reg(avr, reg);
-}
-
-void avr_io_write(struct avr *avr, uint16_t reg, uint8_t val) {
-    avr_set_reg(avr, reg, val);
 }

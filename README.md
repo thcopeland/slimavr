@@ -87,12 +87,14 @@ struct avr {
 };
 ```
 
-If you want to modify IO registers, two helper functions are provided to ensure that the proper side effects are triggered. You should not use these for accessing buffered 16-bit registers, as this may overwrite the internal byte buffer, creating subtle bugs.
+If you want to communicate with the simulated core, two helper functions are provided to ensure that the proper side effects are triggered. `avr_io_sample` simulates reading the voltage at the given pin, and `avr_io_connect` simulates connecting the given pin to voltage.
 
 ```c
-uint8_t avr_io_read(struct avr *avr, uint16_t reg);
-void avr_io_write(struct avr *avr, uint16_t reg, uint8_t val);
+enum avr_pin_state avr_io_sample(struct avr *avr, uint8_t port, uint8_t pin);
+void avr_io_connect(struct avr *avr, uint8_t port, uint8_t pin, enum avr_pin_state value);
 ```
+
+Alternatively, if you need more precise control, you can access memory directly through `avr->mem`. This is fast and simple, but will not trigger any interrupts.
 
 If the emulated MCU crashes, you can use `avr_dump` to inspect the current state and recently executed instructions.
 ```c

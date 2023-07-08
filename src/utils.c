@@ -44,8 +44,9 @@ uint8_t sim_pop(struct avr *avr) {
 }
 
 
-// map between register type and timer index
-#define reg_type_timer(type) (((int)type-6)/3)
+// map between register type and index
+#define reg_type_timer(type) (((int)type-REG_TIMER0_HIGH)/3)
+#define reg_type_port_in(type) ((int)type-REG_PORTA_IN)
 
 // ensure that the mapping remains correct
 static_assert(reg_type_timer(REG_TIMER0_HIGH) == 0, "reg_type_timer and avr_register_type mismatch for REG_TIMER0_HIGH");
@@ -66,6 +67,18 @@ static_assert(reg_type_timer(REG_TIMER4_CTRL) == 4, "reg_type_timer and avr_regi
 static_assert(reg_type_timer(REG_TIMER5_HIGH) == 5, "reg_type_timer and avr_register_type mismatch for REG_TIMER5_HIGH");
 static_assert(reg_type_timer(REG_TIMER5_LOW) == 5, "reg_type_timer and avr_register_type mismatch for REG_TIMER5_LOW");
 static_assert(reg_type_timer(REG_TIMER5_CTRL) == 5, "reg_type_timer and avr_register_type mismatch for REG_TIMER5_CTRL");
+static_assert(reg_type_port_in(REG_PORTA_IN) == 0, "reg_type_port_in and avr_register_type mismatch for REG_PORTA_IN");
+static_assert(reg_type_port_in(REG_PORTB_IN) == 1, "reg_type_port_in and avr_register_type mismatch for REG_PORTB_IN");
+static_assert(reg_type_port_in(REG_PORTC_IN) == 2, "reg_type_port_in and avr_register_type mismatch for REG_PORTC_IN");
+static_assert(reg_type_port_in(REG_PORTD_IN) == 3, "reg_type_port_in and avr_register_type mismatch for REG_PORTD_IN");
+static_assert(reg_type_port_in(REG_PORTE_IN) == 4, "reg_type_port_in and avr_register_type mismatch for REG_PORTE_IN");
+static_assert(reg_type_port_in(REG_PORTF_IN) == 5, "reg_type_port_in and avr_register_type mismatch for REG_PORTF_IN");
+static_assert(reg_type_port_in(REG_PORTG_IN) == 6, "reg_type_port_in and avr_register_type mismatch for REG_PORTG_IN");
+static_assert(reg_type_port_in(REG_PORTH_IN) == 7, "reg_type_port_in and avr_register_type mismatch for REG_PORTH_IN");
+static_assert(reg_type_port_in(REG_PORTI_IN) == 8, "reg_type_port_in and avr_register_type mismatch for REG_PORTI_IN");
+static_assert(reg_type_port_in(REG_PORTJ_IN) == 9, "reg_type_port_in and avr_register_type mismatch for REG_PORTJ_IN");
+static_assert(reg_type_port_in(REG_PORTK_IN) == 10, "reg_type_port_in and avr_register_type mismatch for REG_PORTK_IN");
+static_assert(reg_type_port_in(REG_PORTL_IN) == 11, "reg_type_port_in and avr_register_type mismatch for REG_PORTL_IN");
 
 uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
     enum avr_register_type type = avr->model.regmap[reg].type;
@@ -104,6 +117,20 @@ uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
         case REG_TIMER5_HIGH:
             return avr->timer_data[reg_type_timer(type)].tmp;
 
+        case REG_PORTA_IN:
+        case REG_PORTB_IN:
+        case REG_PORTC_IN:
+        case REG_PORTD_IN:
+        case REG_PORTE_IN:
+        case REG_PORTF_IN:
+        case REG_PORTG_IN:
+        case REG_PORTH_IN:
+        case REG_PORTI_IN:
+        case REG_PORTJ_IN:
+        case REG_PORTK_IN:
+        case REG_PORTL_IN:
+            return avr_io_sample_port(avr, reg_type_port_in(type));
+
         default:
             assert(0); // should be comprehensive
     }
@@ -118,6 +145,18 @@ void avr_set_reg(struct avr *avr, uint16_t reg, uint8_t val) {
 
         case REG_VALUE:
         case REG_UNSUPPORTED:
+        case REG_PORTA_IN:
+        case REG_PORTB_IN:
+        case REG_PORTC_IN:
+        case REG_PORTD_IN:
+        case REG_PORTE_IN:
+        case REG_PORTF_IN:
+        case REG_PORTG_IN:
+        case REG_PORTH_IN:
+        case REG_PORTI_IN:
+        case REG_PORTJ_IN:
+        case REG_PORTK_IN:
+        case REG_PORTL_IN:
             avr->reg[reg] = val;
             break;
 

@@ -561,7 +561,7 @@ void inst_sbrs(struct avr *avr, uint16_t inst) {
 void inst_sbic(struct avr *avr, uint16_t inst) {
     uint8_t reg = (inst >> 3) & 0x1f,
             mask = 1 << (inst & 0x7);
-    if (avr->reg[reg+avr->model.io_offset] & mask) {
+    if (avr_get_reg(avr, reg+avr->model.io_offset) & mask) {
         avr->pc += 2;
     } else {
         sim_skip(avr);
@@ -571,7 +571,7 @@ void inst_sbic(struct avr *avr, uint16_t inst) {
 void inst_sbis(struct avr *avr, uint16_t inst) {
     uint8_t reg = (inst >> 3) & 0x1f,
             mask = 1 << (inst & 0x7);
-    if (avr->reg[reg+avr->model.io_offset] & mask) {
+    if (avr_get_reg(avr, reg+avr->model.io_offset) & mask) {
         sim_skip(avr);
     } else {
         avr->pc += 2;

@@ -5,6 +5,7 @@
 #include "model.h"
 #include "eeprom.h"
 #include "flash.h"
+#include "gpio.h"
 
 enum avr_error {
     AVR_INVALID_INSTRUCTION,
@@ -59,6 +60,7 @@ struct avr {
     uint8_t *eep;               // eeprom
 
     // various internal state
+    enum avr_pin_state (*pin_data)[8];
     struct avr_timerstate *timer_data;
     struct avr_pending_inst pending_inst;
     struct avr_eeprom_state eeprom_data;
@@ -86,17 +88,5 @@ int avr_dump(struct avr *avr, const char *fname);
  * Step a single cycle.
  */
 void avr_step(struct avr *avr);
-
-/*
- * Read an IO register's value. This can be used for basic communication, but
- * if you need more control, you should access avr->reg or avr->mem directly.
- */
-uint8_t avr_io_read(struct avr *avr, uint16_t reg);
-
-/*
- * Write to an IO register. This can be used for basic communication, but
- * if you need more control, you should access avr->reg or avr->mem directly.
- */
-void avr_io_write(struct avr *avr, uint16_t reg, uint8_t val);
 
 #endif
