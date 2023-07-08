@@ -3,7 +3,7 @@
 #include "utils.h"
 #include "avr.h"
 
-void timerstate_init(struct avr_timerstate *state) {
+static void timerstate_reset(struct avr_timerstate *state) {
     state->wgm = WGM_RESERVED;
     state->top = 0;
     state->ovf = 0;
@@ -31,6 +31,12 @@ void timerstate_init(struct avr_timerstate *state) {
     state->ocrb = 0;
     state->ocrc = 0;
     state->tmp = 0;
+}
+
+void avr_timers_reset(struct avr *avr) {
+    for (int i = 0; i < avr->model.timer_count; i++) {
+        timerstate_reset(avr->timer_data+i);
+    }
 }
 
 // must match avr_timer_cs order

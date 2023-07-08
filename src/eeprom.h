@@ -18,7 +18,7 @@ struct avr_eeprom_state {
 
 struct avr;
 
-void avr_init_eeprom_state(struct avr_eeprom_state *eep);
+void avr_eeprom_reset(struct avr *avr);
 void avr_set_eeprom_reg(struct avr *avr, uint16_t addr, uint8_t val, uint8_t mask);
 void avr_update_eeprom(struct avr *avr);
 

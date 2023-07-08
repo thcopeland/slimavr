@@ -25,8 +25,9 @@ struct avr_flash_state {
 
 struct avr;
 
-void avr_init_flash_state(struct avr_flash_state *flash, size_t buffsize);
-void avr_free_flash_state(struct avr_flash_state *flash);
+void *avr_flash_allocate_internal(struct avr *avr);
+void avr_flash_free_internal(struct avr *avr);
+void avr_flash_reset(struct avr *avr);
 void avr_set_flash_reg(struct avr *avr, uint16_t addr, uint8_t val, uint8_t mask);
 void avr_exec_spm(struct avr *avr, uint16_t inst);
 void avr_update_flash(struct avr *avr);

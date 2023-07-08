@@ -19,6 +19,7 @@ struct avr_tracedata {
 
 struct avr_tracedata *avr_trace_new(void);
 void avr_trace_free(struct avr_tracedata *trace);
+void avr_trace_reset(struct avr_tracedata *trace);
 void avr_trace_enq(struct avr_tracedata *trace, uint32_t addr, uint16_t inst, uint16_t inst2);
 int avr_trace_deq(struct avr_tracedata *trace, struct avr_trace_inst *inst);
 

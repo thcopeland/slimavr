@@ -1,6 +1,8 @@
 #ifndef SLIMAVR_GPIO_H
 #define SLIMAVR_GPIO_H
 
+#include <stdint.h>
+
 /*
  * Slimavr handles simple IO by (very roughly) simulating circuit connections.
  * The result is more complicated than a simple HIGH/LOW model, but also more
@@ -19,7 +21,9 @@ enum avr_pin_state {
     PIN_FLOATING    // not connected
 };
 
-#include "avr.h"
+struct avr;
+
+void avr_io_init(struct avr *avr);
 
 /*
  * Sample the voltage on the given pin. The result depends both on the simulated

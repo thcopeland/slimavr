@@ -10,8 +10,7 @@ struct avr_tracedata *avr_trace_new(void) {
     struct avr_tracedata *trace = malloc(sizeof(*trace));
     if (trace) {
         trace->history = malloc(sizeof(*trace->history)*AVR_DEBUG_HISTORY_SIZE);
-        trace->history_start = 0;
-        trace->history_end = 0;
+        avr_trace_reset(trace);
 
         if (trace->history == NULL) {
             trace = NULL;
@@ -25,6 +24,11 @@ void avr_trace_free(struct avr_tracedata *trace) {
         free(trace->history);
         free(trace);
     }
+}
+
+void avr_trace_reset(struct avr_tracedata *trace) {
+    trace->history_start = 0;
+    trace->history_end = 0;
 }
 
 void avr_trace_enq(struct avr_tracedata *trace, uint32_t addr, uint16_t inst, uint16_t inst2) {

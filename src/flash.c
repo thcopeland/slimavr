@@ -5,8 +5,6 @@
 #include "avrdefs.h"
 #include "flash.h"
 
-#include <stdio.h>
-
 #define AVR_STATUS_INTERRUPT 0x80
 #define AVR_STATUS_TIMER     0x0f
 
@@ -22,21 +20,25 @@
 #define AVR_SPM_MODE_PGERS  5
 #define AVR_SPM_MODE_SIGRD  6
 
-void avr_init_flash_state(struct avr_flash_state *flash, size_t buffsize) {
-    flash->buffer = malloc(buffsize);
-    if (flash->buffer != NULL) {
-        memset(flash->buffer, 0xff, buffsize);
-    }
-    flash->progress = 0;
-    flash->addr = 0;
-    flash->operation = AVR_SPM_OP_NONE;
-    flash->spm_mode = AVR_SPM_MODE_NONE;
-    flash->status = 0;
-    flash->idle = 1;
+void *avr_flash_allocate_internal(struct avr *avr) {
+    return avr->flash_data.buffer = malloc(avr->model.flash_pgsize);
 }
 
-void avr_free_flash_state(struct avr_flash_state *flash) {
-    free(flash->buffer);
+void avr_flash_free_internal(struct avr *avr) {
+    if (avr->flash_data.buffer) {
+        free(avr->flash_data.buffer);
+    }
+}
+
+void avr_flash_reset(struct avr *avr) {
+    memset(avr->rom, 0xff, avr->model.romsize);
+    memset(avr->flash_data.buffer, 0xff, avr->model.flash_pgsize);
+    avr->flash_data.progress = 0;
+    avr->flash_data.addr = 0;
+    avr->flash_data.operation = AVR_SPM_OP_NONE;
+    avr->flash_data.spm_mode = AVR_SPM_MODE_NONE;
+    avr->flash_data.status = 0;
+    avr->flash_data.idle = 1;
 }
 
 void avr_set_flash_reg(struct avr *avr, uint16_t addr, uint8_t val, uint8_t mask) {

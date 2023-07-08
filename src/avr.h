@@ -74,6 +74,12 @@ struct avr {
 struct avr *avr_new(struct avr_model model);
 
 /*
+ * Reset an avr instance, resetting registers, buffers, and memory to their
+ * initial state.
+ */
+void avr_reset(struct avr *avr);
+
+/*
  * Free an avr instance.
  */
 void avr_free(struct avr *avr);

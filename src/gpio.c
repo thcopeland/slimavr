@@ -1,4 +1,13 @@
+#include "avr.h"
 #include "gpio.h"
+
+void avr_io_init(struct avr *avr) {
+    for (unsigned i = 0; i < avr->model.port_count; i++) {
+        for (unsigned j = 0; j < sizeof(avr->pin_data[0])/sizeof(avr->pin_data[0][0]); j++) {
+            avr->pin_data[i][j] = PIN_FLOATING;
+        }
+    }
+}
 
 static enum avr_pin_state avr_pin_internal(struct avr *avr, uint8_t port, uint8_t pin) {
     if (avr->mem[avr->model.reg_ddrs[port]] & (1<<pin)) { // output

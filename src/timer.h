@@ -155,7 +155,7 @@ struct avr_timerstate {
 
 struct avr;
 
-void timerstate_init(struct avr_timerstate *state);
+void avr_timers_reset(struct avr *avr);
 void avr_recompute_timer(struct avr *avr, const struct avr_timer *tmr, struct avr_timerstate *state);
 void avr_update_timers(struct avr *avr);
 uint32_t avr_find_timer_interrupt(struct avr *avr);

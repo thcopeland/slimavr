@@ -10,9 +10,7 @@
 #include "utils.h"
 #include "trace.h"
 
-static void alloc_avr_memory(struct avr *avr) {
-    // TODO: clean up, separate allocations and initializations a bit more
-
+static int alloc_avr_memory(struct avr *avr) {
     // In order to simplify and speed up data accesses, all data segments (register
     // file, SRAM, EEPROM, program memory) are actually just pointers into a
     // single contiguous block of memory, structured to match the address space.
@@ -34,56 +32,34 @@ static void alloc_avr_memory(struct avr *avr) {
     }
 
     avr->mem = malloc(avr->model.memend + unmapped);
-    if (avr->mem == NULL) {
-        return;
-    } else {
-        // set up each segment
-        avr->reg = avr->mem;
-        avr->ram = avr->mem + avr->model.ramstart;
-        avr->rom = avr->mem + rom_offset;
-        avr->eep = avr->mem + eep_offset;
-        memset(avr->reg, 0, avr->model.regsize);
-        memset(avr->eep, 0xff, avr->model.eepsize);
-    }
+    if (avr->mem == NULL) goto fail;
 
-    // allocate and init flash
-    avr_init_flash_state(&avr->flash_data, avr->model.flash_pgsize);
-    if (avr->flash_data.buffer == NULL) {
-        free(avr->mem);
-        avr->mem = NULL;
-        return;
-    }
+    // set up each segment
+    avr->reg = avr->mem;
+    avr->ram = avr->mem + avr->model.ramstart;
+    avr->rom = avr->mem + rom_offset;
+    avr->eep = avr->mem + eep_offset;
 
-    // init eeprom
-    avr_init_eeprom_state(&avr->eeprom_data);
+    // allocate flash buffer
+    if (avr_flash_allocate_internal(avr) == NULL) goto fail;
 
-    // allocate and init pin connections
+    // allocate pin connections memory
     avr->pin_data = malloc(sizeof(avr->pin_data[0])*avr->model.port_count);
-    if (avr->pin_data == NULL) {
-        free(avr->mem);
-        free(avr->flash_data.buffer);
-        avr->mem = NULL;
-        return;
-    } else {
-        for (unsigned i = 0; i < avr->model.port_count; i++) {
-            for (unsigned j = 0; j < sizeof(avr->pin_data[0])/sizeof(avr->pin_data[0][0]); j++) {
-                avr->pin_data[i][j] = PIN_FLOATING;
-            }
-        }
-    }
+    if (avr->pin_data == NULL) goto fail;
 
-    // allocate and init timers
+    // allocate and timers
     avr->timer_data = malloc(sizeof(avr->timer_data[0])*avr->model.timer_count);
-    if (avr->timer_data == NULL) {
-        free(avr->mem);
-        free(avr->flash_data.buffer);
-        free(avr->pin_data);
-        avr->mem = NULL;
-    } else {
-        for (int i = 0; i < avr->model.timer_count; i++) {
-            timerstate_init(avr->timer_data+i);
-        }
-    }
+    if (avr->timer_data == NULL) goto fail;
+
+    // allocate trace data
+    avr->trace = avr_trace_new();
+    if (avr->trace == NULL) goto fail;
+
+    return 1;
+
+fail:
+    avr_free(avr);
+    return 0;
 }
 
 struct avr *avr_new(struct avr_model model) {
@@ -98,35 +74,47 @@ struct avr *avr_new(struct avr_model model) {
         avr->insts = 0;
         avr->pending_inst.type = AVR_PENDING_NONE;
 
-        avr->trace = avr_trace_new();
-        if (avr->trace == NULL) {
-            free(avr);
-            return NULL;
+        if (alloc_avr_memory(avr) == 0) {
+            return NULL; // alloc_avr_memory frees avr as well
         }
 
-        alloc_avr_memory(avr);
-        if (avr->mem == NULL) {
-            avr_trace_free(avr->trace);
-            free(avr);
-            return NULL;
-        }
-
-        uint16_t sp = model.ramstart+model.ramsize - 1;
-        avr->reg[model.reg_stack+1] = sp >> 8;
-        avr->reg[model.reg_stack] = sp & 0xff;
+        avr_reset(avr);
+        avr_io_init(avr);
     }
     return avr;
 }
 
 void avr_free(struct avr *avr) {
     if (avr) {
-        avr_free_flash_state(&avr->flash_data);
+        avr_flash_free_internal(avr);
         avr_trace_free(avr->trace);
         free(avr->mem);
         free(avr->pin_data);
         free(avr->timer_data);
         free(avr);
     }
+}
+
+void avr_reset(struct avr *avr) {
+    avr->error = 0;
+    avr->status = MCU_STATUS_NORMAL;
+    avr->progress = 0;
+    avr->pc = 0;
+    avr->clock = 0;
+    avr->insts = 0;
+    avr->pending_inst.type = AVR_PENDING_NONE;
+
+    memset(avr->reg, 0x00, avr->model.regsize);
+    memset(avr->ram, 0x00, avr->model.ramsize);
+    avr_eeprom_reset(avr);
+    avr_flash_reset(avr);
+    avr_timers_reset(avr);
+    avr_trace_reset(avr->trace);
+    // pin data is NOT reset, since it is conceptually external to the microcontroller
+
+    uint16_t sp = avr->model.ramstart+avr->model.ramsize - 1;
+    avr->reg[avr->model.reg_stack+1] = sp >> 8;
+    avr->reg[avr->model.reg_stack] = sp & 0xff;
 }
 
 static inline void avr_update(struct avr *avr) {
