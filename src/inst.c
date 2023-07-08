@@ -719,17 +719,17 @@ static void sim_access(struct avr *avr, uint16_t ptr, uint8_t disp, uint8_t reg,
         if (addr+disp < avr->model.regsize) {
             avr_set_reg(avr, addr+disp, avr->reg[reg]);
         } else {
-            avr->pending_inst.type = AVR_PENDING_COPY;
-            avr->pending_inst.dst = addr+disp;
-            avr->pending_inst.src = reg;
+            avr->incomplete_inst.type = AVR_INCOMPLETE_COPY;
+            avr->incomplete_inst.dst = addr+disp;
+            avr->incomplete_inst.src = reg;
         }
     } else {
         if (addr+disp < avr->model.regsize) {
             avr->reg[reg] = avr_get_reg(avr, addr+disp);
         } else {
-            avr->pending_inst.type = AVR_PENDING_COPY;
-            avr->pending_inst.dst = reg;
-            avr->pending_inst.src = addr+disp;
+            avr->incomplete_inst.type = AVR_INCOMPLETE_COPY;
+            avr->incomplete_inst.dst = reg;
+            avr->incomplete_inst.src = addr+disp;
         }
     }
 
@@ -774,9 +774,9 @@ void inst_lds(struct avr *avr, uint16_t inst) {
     if (addr >= avr->model.memend) {
         avr_panic(avr, AVR_INVALID_RAM_ADDRESS);
     } else {
-        avr->pending_inst.type = AVR_PENDING_COPY;
-        avr->pending_inst.dst = dst;
-        avr->pending_inst.src = addr;
+        avr->incomplete_inst.type = AVR_INCOMPLETE_COPY;
+        avr->incomplete_inst.dst = dst;
+        avr->incomplete_inst.src = addr;
         avr->pc += 4;
         avr->progress = 1;
         avr->status = MCU_STATUS_COMPLETING;
@@ -812,9 +812,9 @@ void inst_sts(struct avr *avr, uint16_t inst) {
     if (addr >= avr->model.memend) {
         avr_panic(avr, AVR_INVALID_RAM_ADDRESS);
     } else {
-        avr->pending_inst.type = AVR_PENDING_COPY;
-        avr->pending_inst.dst = addr;
-        avr->pending_inst.src = src;
+        avr->incomplete_inst.type = AVR_INCOMPLETE_COPY;
+        avr->incomplete_inst.dst = addr;
+        avr->incomplete_inst.src = src;
         avr->pc += 4;
         avr->progress = 1;
         avr->status = MCU_STATUS_COMPLETING;

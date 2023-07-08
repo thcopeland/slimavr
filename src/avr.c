@@ -72,7 +72,7 @@ struct avr *avr_new(struct avr_model model) {
         avr->pc = 0;
         avr->clock = 0;
         avr->insts = 0;
-        avr->pending_inst.type = AVR_PENDING_NONE;
+        avr->incomplete_inst.type = AVR_INCOMPLETE_NONE;
 
         if (alloc_avr_memory(avr) == 0) {
             return NULL; // alloc_avr_memory frees avr as well
@@ -102,7 +102,7 @@ void avr_reset(struct avr *avr) {
     avr->pc = 0;
     avr->clock = 0;
     avr->insts = 0;
-    avr->pending_inst.type = AVR_PENDING_NONE;
+    avr->incomplete_inst.type = AVR_INCOMPLETE_NONE;
 
     memset(avr->reg, 0x00, avr->model.regsize);
     memset(avr->ram, 0x00, avr->model.ramsize);
@@ -144,20 +144,20 @@ static inline void avr_exec(struct avr *avr) {
     avr_dispatch(avr, inst);
 }
 
-static inline void avr_resolve_pending(struct avr *avr) {
-    if (avr->pending_inst.type == AVR_PENDING_COPY) {
-        if (avr->pending_inst.dst < avr->model.regsize && avr->pending_inst.src < avr->model.regsize) {
-            avr_set_reg(avr, avr->pending_inst.dst, avr_get_reg(avr, avr->pending_inst.src));
-        } else if (avr->pending_inst.dst < avr->model.regsize) {
-            avr_set_reg(avr, avr->pending_inst.dst, avr->mem[avr->pending_inst.src]);
-        } else if (avr->pending_inst.src < avr->model.regsize) {
-            avr->mem[avr->pending_inst.dst] = avr_get_reg(avr, avr->pending_inst.src);
+static inline void avr_resolve_incomplete(struct avr *avr) {
+    if (avr->incomplete_inst.type == AVR_INCOMPLETE_COPY) {
+        if (avr->incomplete_inst.dst < avr->model.regsize && avr->incomplete_inst.src < avr->model.regsize) {
+            avr_set_reg(avr, avr->incomplete_inst.dst, avr_get_reg(avr, avr->incomplete_inst.src));
+        } else if (avr->incomplete_inst.dst < avr->model.regsize) {
+            avr_set_reg(avr, avr->incomplete_inst.dst, avr->mem[avr->incomplete_inst.src]);
+        } else if (avr->incomplete_inst.src < avr->model.regsize) {
+            avr->mem[avr->incomplete_inst.dst] = avr_get_reg(avr, avr->incomplete_inst.src);
         } else {
             // not possible within the AVR instruction set but ok
             LOG("*** unexpected memory to memory copy ***\n");
-            avr->mem[avr->pending_inst.dst] = avr->mem[avr->pending_inst.src];
+            avr->mem[avr->incomplete_inst.dst] = avr->mem[avr->incomplete_inst.src];
         }
-        avr->pending_inst.type = AVR_PENDING_NONE;
+        avr->incomplete_inst.type = AVR_INCOMPLETE_NONE;
     }
 }
 
@@ -171,7 +171,7 @@ void avr_step(struct avr *avr) {
             LOG("*** continuing last instruction (%d) ***\n", avr->progress);
             avr->progress--;
             if (avr->progress <= 0) {
-                avr_resolve_pending(avr);
+                avr_resolve_incomplete(avr);
                 avr->status = MCU_STATUS_NORMAL;
             }
             break;

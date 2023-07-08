@@ -23,15 +23,15 @@ enum avr_status {
     MCU_STATUS_IDLE
 };
 
-enum avr_pending_type {
-    AVR_PENDING_NONE,
-    AVR_PENDING_COPY
+enum avr_incomplete_inst_type {
+    AVR_INCOMPLETE_NONE,
+    AVR_INCOMPLETE_COPY
 };
 
-struct avr_pending_inst {
+struct avr_incomplete_inst {
     uint32_t src;
     uint32_t dst;
-    enum avr_pending_type type;
+    enum avr_incomplete_inst_type type;
 };
 
 #define avr_panic(avr, err) ({                                                  \
@@ -62,7 +62,7 @@ struct avr {
     // various internal state
     enum avr_pin_state (*pin_data)[8];
     struct avr_timerstate *timer_data;
-    struct avr_pending_inst pending_inst;
+    struct avr_incomplete_inst incomplete_inst;
     struct avr_eeprom_state eeprom_data;
     struct avr_flash_state flash_data;
     struct avr_tracedata *trace;
