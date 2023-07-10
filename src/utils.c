@@ -129,7 +129,7 @@ uint8_t avr_get_reg(struct avr *avr, uint16_t reg) {
         case REG_PORTJ_IN:
         case REG_PORTK_IN:
         case REG_PORTL_IN:
-            return avr_io_sample_port(avr, reg_type_port_in(type));
+            return avr_io_read_port(avr, 'A' + (char) reg_type_port_in(type));
 
         default:
             assert(0); // should be comprehensive

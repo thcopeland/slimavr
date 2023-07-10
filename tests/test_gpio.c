@@ -4,10 +4,10 @@
 void test_gpio(void) {
     printf("testing gpio... ");
     struct avr *avr = avr_new(AVR_MODEL_ATMEGA1280);
-    avr_io_connect(avr, 0, 0, PIN_PULLDOWN);
+    avr_io_write(avr, 'A', 0, AVR_PIN_PULLDOWN);
 
     if (avr_load_ihex(avr, "asm/gpio.hex") == 0) {
-        enum avr_pin_state last_clk = PIN_LOW;
+        enum avr_pin_state last_clk = AVR_PIN_LOW;
         uint8_t count = 0;
         uint8_t wait = 10;
         for (long i = 0; i < 500; i++) {
@@ -20,17 +20,17 @@ void test_gpio(void) {
 
             if (count < 3) {
                 // receive three pulses
-                enum avr_pin_state clk = avr_io_sample(avr, 0, 0);
-                if (last_clk == PIN_LOW && clk == PIN_HIGH) {
+                enum avr_pin_state clk = avr_io_read(avr, 'A', 0);
+                if (last_clk == AVR_PIN_LOW && clk == AVR_PIN_HIGH) {
                     count += 1;
                 }
                 last_clk = clk;
             } else if (count < 6) {
                 // send three pulses
                 if (wait == 0) {
-                    avr_io_connect(avr, 0, 0, avr_io_sample(avr, 0, 0) == PIN_HIGH ? PIN_LOW : PIN_HIGH);
+                    avr_io_write(avr, 'A', 0, avr_io_read(avr, 'A', 0) == AVR_PIN_HIGH ? AVR_PIN_LOW : AVR_PIN_HIGH);
                     wait = 10;
-                    count += avr_io_sample(avr, 0, 0) == PIN_LOW;
+                    count += avr_io_read(avr, 'A', 0) == AVR_PIN_LOW;
                 } else {
                     wait--;
                 }

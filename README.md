@@ -1,6 +1,6 @@
 ## Slimavr
 
-Slimavr is a slim, fast simulator for a subset of 8-bit AVR microcontrollers. The name follows in the grand tradition established by [simulavr](https://www.nongnu.org/simulavr/) and [simavr](https://github.com/buserror/simavr).
+Slimavr is a slim, fast emulator for a subset of 8-bit AVR microcontrollers. The name follows in the grand tradition established by [simulavr](https://www.nongnu.org/simulavr/) and [simavr](https://github.com/buserror/simavr).
 
 Unlike these older projects, slimavr is designed to run at or faster than the standard AVR 16 MHz. On my 2.6 GHz laptop it can achieve around 38 MHz on [this benchmark](tests/asm/benchmark.S). Performance strongly depends on the program, however. Programs using several timers tend to be slower. Programs that use prescaled timers (or none at all) can be much faster.
 
@@ -40,7 +40,7 @@ Download the latest version from the [releases page](https://github.com/thcopela
 
 Slimavr is intended to be placed into your project source and compiled with it. Therefore, the included Makefile will produce a static library, `libslimavr.a`, which you should link against. Where necessary, you should `#include slimavr-X-X-X/slimavr.h`.
 
-To create a simulated device, use
+To create an emulated device, use
 ```c
 struct avr *avr_new(struct avr_model model);
 ```
@@ -58,7 +58,13 @@ void avr_step(struct avr *avr);
 ```
 Note that, unlike simavr, this does not necessary execute a full instruction.
 
-In order to interact with and examine the simulated device, you can access its memory through the `mem`, `rom`, `reg`, `ram`, or `eep` fields. These segments are arranged in memory so that they can be accessed through `mem` in the usual address space (R0-R31, register file, SRAM).
+To restart the device, use
+```c
+void avr_reset(struct avr *avr);
+```
+A restarted device is identical to a newly-created device, except that the pin connections (as configured with `avr_io_write`) are not changed.
+
+In order to interact with and examine the emulated device, you can access its memory through the `mem`, `rom`, `reg`, `ram`, or `eep` fields. These segments are arranged in memory so that they can be accessed through `mem` in the usual address space (R0-R31, register file, SRAM).
 
 You can access model information through the `model` field, though you should probably avoid doing so, as this might change in future versions.
 
@@ -87,14 +93,12 @@ struct avr {
 };
 ```
 
-If you want to communicate with the simulated core, two helper functions are provided to ensure that the proper side effects are triggered. `avr_io_sample` simulates reading the voltage at the given pin, and `avr_io_connect` simulates connecting the given pin to voltage.
-
+If you want to communicate with the emulated core, two helper functions are provided to ensure that the proper side effects are triggered. `avr_io_read` simulates sampling the voltage at the given pin, and `avr_io_write` simulates connecting the given pin to a voltage source.
 ```c
-enum avr_pin_state avr_io_sample(struct avr *avr, uint8_t port, uint8_t pin);
-void avr_io_connect(struct avr *avr, uint8_t port, uint8_t pin, enum avr_pin_state value);
+enum avr_pin_state avr_io_read(const struct avr *avr, char port, uint8_t pin);
+void avr_io_write(struct avr *avr, char port, uint8_t pin, enum avr_pin_state value);
 ```
-
-Alternatively, if you need more precise control, you can access memory directly through `avr->mem`. This is fast and simple, but will not trigger any interrupts.
+Alternatively, if you need more precise control, you can access IO registers directly through `avr->mem`. This is simple and fast but doesn't trigger interrupts or account for pullup resistor configurations.
 
 If the emulated MCU crashes, you can use `avr_dump` to inspect the current state and recently executed instructions.
 ```c
