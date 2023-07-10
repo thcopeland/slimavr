@@ -7,6 +7,6 @@
 #define AVR_EFORMAT 2
 #define AVR_ECHECKSUM 3
 
-int avr_load_ihex(struct avr *avr, char *fname);
+int avr_load_ihex(struct avr *avr, const char *fname);
 
 #endif

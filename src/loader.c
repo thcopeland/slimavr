@@ -8,7 +8,7 @@
 
 #define BUFFSIZE 512
 
-int avr_load_ihex(struct avr *avr, char *fname) {
+int avr_load_ihex(struct avr *avr, const char *fname) {
     FILE *f = fopen(fname, "r");
     char buff[BUFFSIZE];
     uint32_t line = 1,
@@ -51,7 +51,13 @@ int avr_load_ihex(struct avr *avr, char *fname) {
                 break;
             case 0x03: // start segment address, ignored
                 break;
-            case 0x04: // extended linear address, unsupported
+            case 0x04: // extended linear address
+                sscanf(buff+i, "%4X", &val);
+                checksum += val + (val>>8);
+                base_addr &= 0xffff0000;
+                base_addr |= (val << 16);
+                i += 4;
+                break;
             case 0x05: // start linear address, unsupported
                 printf("avr_load_ihex: unsupported record type %02X at %s:%d\n", type, fname, line);
                 fclose(f);
